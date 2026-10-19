@@ -347,6 +347,7 @@ export default function App() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
       <AdminModal

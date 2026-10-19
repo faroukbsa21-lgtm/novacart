@@ -152,10 +152,10 @@ export default function Navbar({
             {isAdmin && (
               <button
                 onClick={onOpenAdmin}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-500/25 transition-all active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-500/25 transition-all active:scale-95"
               >
                 <LayoutDashboard size={15} />
-                <span>{t('nav_admin')}</span>
+                <span className="font-bold">{t('nav_admin')}</span>
               </button>
             )}
 
@@ -177,14 +177,16 @@ export default function Navbar({
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 text-sm font-medium text-slate-200 border border-slate-700 transition-all"
                 >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
-                    isAdmin ? 'bg-purple-500/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-400'
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                    isAdmin ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                   }`}>
                     {user?.full_name ? user.full_name.charAt(0).toUpperCase() : (isAdmin ? 'A' : 'U')}
                   </div>
-                  <span className="hidden sm:inline max-w-[120px] truncate">{user?.full_name || (isAdmin ? t('nav_role_admin') : t('nav_role_customer'))}</span>
+                  <span className="max-w-[110px] sm:max-w-[150px] truncate text-xs sm:text-sm font-semibold text-slate-100">
+                    {user?.full_name || user?.name || user?.email?.split('@')[0] || (isAdmin ? t('nav_role_admin') : t('nav_role_customer'))}
+                  </span>
                   {isAdmin && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-300 font-bold uppercase">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/25 text-purple-300 font-bold uppercase tracking-wider border border-purple-500/30">
                       ADMIN
                     </span>
                   )}
@@ -193,14 +195,18 @@ export default function Navbar({
                 {/* Dropdown */}
                 {userMenuOpen && (
                   <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-56 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl py-2 z-50 text-sm animate-fade-in`}>
-                    <div className="px-4 py-2 border-b border-slate-700/80">
-                      <p className="font-semibold text-white truncate">{user?.full_name || t('nav_account')}</p>
-                      <p className="text-xs text-slate-400 truncate">{user?.email}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className={`inline-block text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          isAdmin ? 'bg-purple-500/20 text-purple-300' : 'bg-emerald-500/20 text-emerald-300'
+                    <div className="px-4 py-2.5 border-b border-slate-700/80">
+                      <p className="font-bold text-white text-sm truncate">
+                        {user?.full_name || user?.name || user?.email?.split('@')[0] || t('nav_account')}
+                      </p>
+                      <p className="text-xs text-slate-400 truncate font-mono mt-0.5">{user?.email}</p>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className={`inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
+                          isAdmin 
+                            ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' 
+                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                         }`}>
-                          {user?.role || t('nav_role_customer')}
+                          {user?.role || (isAdmin ? 'admin' : 'customer')}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           {currentLanguageMeta.flag} {currentLanguageMeta.code.toUpperCase()}

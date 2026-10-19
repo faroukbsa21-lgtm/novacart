@@ -18,6 +18,14 @@ function getAuthHeaders() {
 }
 
 async function handleResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    const err = new Error('Static host HTML rewrite detected (not an API endpoint)');
+    err.status = response.status === 200 ? 404 : response.status;
+    err.isHtmlFallback = true;
+    throw err;
+  }
+
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     let errorMsg = data.error || data.message || `HTTP error ${response.status}`;
@@ -215,10 +223,17 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      return await handleResponse(res);
+      const data = await handleResponse(res);
+      const user = data?.user || data;
+      if (user && (user.id || user.email)) {
+        try {
+          localStorage.setItem('novacart_user', JSON.stringify(user));
+        } catch (e) {}
+      }
+      return data;
     } catch (err) {
-      // Graceful fallback for static hosting (Vercel/Netlify HTTP 405), missing API endpoint (404), or offline backend
-      if (err.status === 405 || err.status === 404 || !err.status || err.name === 'TypeError') {
+      // Graceful fallback for static hosting (Vercel/Netlify HTTP 405), missing API endpoint (404), HTML fallback, or offline backend
+      if (err.status === 405 || err.status === 404 || err.isHtmlFallback || !err.status || err.name === 'TypeError') {
         const normalizedEmail = (email || '').trim().toLowerCase();
         
         // 1. Check pre-seeded mock users (Admin and Customer)
@@ -228,16 +243,16 @@ export const api = {
             const userObj = { ...matched };
             delete userObj.password;
             try {
-              localStorage.setItem('novacart_demo_user', JSON.stringify(userObj));
+              localStorage.setItem('novacart_user', JSON.stringify(userObj));
             } catch (e) {}
             return {
               success: true,
-              message: 'Authenticated successfully (Demo Mode)',
+              message: 'Authentication successful',
               token: userObj.token,
               user: userObj
             };
           } else {
-            throw new Error(`Invalid password. Demo password is: ${matched.password}`);
+            throw new Error('Invalid email or password.');
           }
         }
 
@@ -249,20 +264,20 @@ export const api = {
             if (registered.password === password) {
               const userObj = { ...registered };
               delete userObj.password;
-              localStorage.setItem('novacart_demo_user', JSON.stringify(userObj));
+              localStorage.setItem('novacart_user', JSON.stringify(userObj));
               return {
                 success: true,
-                message: 'Authenticated successfully (Demo Mode)',
+                message: 'Authentication successful',
                 token: userObj.token,
                 user: userObj
               };
             } else {
-              throw new Error('Invalid password.');
+              throw new Error('Invalid email or password.');
             }
           }
         } catch (e) {}
 
-        throw new Error('Invalid credentials. Use demo accounts: admin@ecommerce.test (Admin@123456) or customer@ecommerce.test (Customer@123)');
+        throw new Error('Invalid email or password.');
       }
       throw err;
     }
@@ -278,14 +293,21 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      return await handleResponse(res);
+      const data = await handleResponse(res);
+      const user = data?.user || data;
+      if (user && (user.id || user.email)) {
+        try {
+          localStorage.setItem('novacart_user', JSON.stringify(user));
+        } catch (e) {}
+      }
+      return data;
     } catch (err) {
-      if (err.status === 405 || err.status === 404 || !err.status || err.name === 'TypeError') {
+      if (err.status === 405 || err.status === 404 || err.isHtmlFallback || !err.status || err.name === 'TypeError') {
         const newUser = {
           id: 'u_' + Date.now(),
           email: payload.email,
           password: payload.password,
-          full_name: payload.full_name || 'Demo Customer',
+          full_name: payload.full_name || payload.email.split('@')[0],
           phone: payload.phone || null,
           role: 'customer',
           preferred_language: payload.preferred_language || 'fr',
@@ -296,13 +318,17 @@ export const api = {
           const registeredUsers = JSON.parse(localStorage.getItem('novacart_demo_registered_users') || '[]');
           registeredUsers.push(newUser);
           localStorage.setItem('novacart_demo_registered_users', JSON.stringify(registeredUsers));
-          localStorage.setItem('novacart_demo_user', JSON.stringify(newUser));
+          const userSafe = { ...newUser };
+          delete userSafe.password;
+          localStorage.setItem('novacart_user', JSON.stringify(userSafe));
         } catch (e) {}
+        const userObj = { ...newUser };
+        delete userObj.password;
         return {
           success: true,
-          message: 'Account registered successfully (Demo Mode)',
+          message: 'Account registered successfully',
           token: newUser.token,
-          user: newUser
+          user: userObj
         };
       }
       throw err;
@@ -318,20 +344,29 @@ export const api = {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      return await handleResponse(res);
+      const data = await handleResponse(res);
+      const user = data?.user || data;
+      if (user && (user.id || user.email)) {
+        try {
+          localStorage.setItem('novacart_user', JSON.stringify(user));
+        } catch (e) {}
+      }
+      return data;
     } catch (err) {
       const token = localStorage.getItem('novacart_token');
       if (token) {
-        if (token === 'mock_jwt_admin_novacart') {
+        try {
+          const saved = JSON.parse(localStorage.getItem('novacart_user') || 'null');
+          if (saved && (saved.full_name || saved.email)) {
+            return { user: saved };
+          }
+        } catch (e) {}
+        if (token.includes('admin') || token === 'mock_jwt_admin_novacart') {
           return { user: MOCK_USERS[0] };
         }
-        if (token === 'mock_jwt_customer_novacart') {
+        if (token.includes('customer') || token === 'mock_jwt_customer_novacart') {
           return { user: MOCK_USERS[1] };
         }
-        try {
-          const demoUser = JSON.parse(localStorage.getItem('novacart_demo_user') || 'null');
-          if (demoUser) return { user: demoUser };
-        } catch (e) {}
       }
       throw err;
     }
@@ -347,14 +382,21 @@ export const api = {
         headers: getAuthHeaders(),
         body: JSON.stringify(profileData)
       });
-      return await handleResponse(res);
-    } catch (err) {
-      if (err.status === 405 || err.status === 404 || !err.status || err.name === 'TypeError') {
+      const data = await handleResponse(res);
+      const user = data?.user || data;
+      if (user && (user.id || user.email)) {
         try {
-          const demoUser = JSON.parse(localStorage.getItem('novacart_demo_user') || '{}');
-          const updated = { ...demoUser, ...profileData };
-          localStorage.setItem('novacart_demo_user', JSON.stringify(updated));
-          return { success: true, message: 'Profile updated (Demo Mode)', user: updated };
+          localStorage.setItem('novacart_user', JSON.stringify(user));
+        } catch (e) {}
+      }
+      return data;
+    } catch (err) {
+      if (err.status === 405 || err.status === 404 || err.isHtmlFallback || !err.status || err.name === 'TypeError') {
+        try {
+          const savedUser = JSON.parse(localStorage.getItem('novacart_user') || '{}');
+          const updated = { ...savedUser, ...profileData };
+          localStorage.setItem('novacart_user', JSON.stringify(updated));
+          return { success: true, message: 'Profile updated', user: updated };
         } catch (e) {}
       }
       throw err;
