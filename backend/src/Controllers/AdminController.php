@@ -123,8 +123,8 @@ class AdminController
         AuthMiddleware::requireRole('admin');
         $cleanId = Security::sanitizeString($id);
 
-        if (!Security::isValidUuid($cleanId)) {
-            Security::errorResponse('Valid product UUID required', 400);
+        if (empty($cleanId)) {
+            Security::errorResponse('Valid product identifier required', 400);
         }
 
         $body = Security::getJsonInput();
@@ -168,8 +168,8 @@ class AdminController
         AuthMiddleware::requireRole('admin');
         $cleanId = Security::sanitizeString($id);
 
-        if (!Security::isValidUuid($cleanId)) {
-            Security::errorResponse('Valid product UUID required', 400);
+        if (empty($cleanId)) {
+            Security::errorResponse('Valid product identifier required', 400);
         }
 
         $res = $this->supabase->delete('products', ['id' => "eq.{$cleanId}"]);

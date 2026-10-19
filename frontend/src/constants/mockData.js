@@ -47,7 +47,7 @@ export const MOCK_CATEGORIES = [
 
 export const MOCK_PRODUCTS = [
   {
-    id: 'p1111111-1111-1111-1111-111111111111',
+    id: 'b1111111-1111-4111-8111-111111111111',
     category_id: '11111111-1111-1111-1111-111111111111',
     category_name: 'Electronics',
     title: 'Aura Wireless ANC Headphones',
@@ -67,7 +67,7 @@ export const MOCK_PRODUCTS = [
     is_active: true
   },
   {
-    id: 'p2222222-2222-2222-2222-222222222222',
+    id: 'b2222222-2222-4222-8222-222222222222',
     category_id: '44444444-4444-4444-4444-444444444444',
     category_name: 'Accessories',
     title: 'Chronos Minimalist Steel Watch',
@@ -87,7 +87,7 @@ export const MOCK_PRODUCTS = [
     is_active: true
   },
   {
-    id: 'p3333333-3333-3333-3333-333333333333',
+    id: 'b3333333-3333-4333-8333-333333333333',
     category_id: '11111111-1111-1111-1111-111111111111',
     category_name: 'Electronics',
     title: 'Lumix 4K Studio Mechanical Keyboard',
@@ -106,7 +106,7 @@ export const MOCK_PRODUCTS = [
     is_active: true
   },
   {
-    id: 'p4444444-4444-4444-4444-444444444444',
+    id: 'b4444444-4444-4444-8444-444444444444',
     category_id: '22222222-2222-2222-2222-222222222222',
     category_name: 'Fashion',
     title: 'Urban Expedition Waterproof Backpack',
@@ -125,7 +125,7 @@ export const MOCK_PRODUCTS = [
     is_active: true
   },
   {
-    id: 'p5555555-5555-5555-5555-555555555555',
+    id: 'b5555555-5555-4555-8555-555555555555',
     category_id: '33333333-3333-3333-3333-333333333333',
     category_name: 'Home & Living',
     title: 'Nordic Ceramic Pour-Over Kettle & Brewer',
@@ -144,7 +144,7 @@ export const MOCK_PRODUCTS = [
     is_active: true
   },
   {
-    id: 'p6666666-6666-6666-6666-666666666666',
+    id: 'b6666666-6666-4666-8666-666666666666',
     category_id: '11111111-1111-1111-1111-111111111111',
     category_name: 'Electronics',
     title: 'Quantum Ultra Smart Fitness Tracker',
@@ -167,7 +167,7 @@ export const MOCK_PRODUCTS = [
 export const MOCK_REVIEWS = [
   {
     id: 'r1',
-    product_id: 'p1111111-1111-1111-1111-111111111111',
+    product_id: 'b1111111-1111-4111-8111-111111111111',
     user_name: 'Sarah Jenkins',
     rating: 5,
     title: 'Unbeatable Noise Cancellation!',
@@ -177,7 +177,7 @@ export const MOCK_REVIEWS = [
   },
   {
     id: 'r2',
-    product_id: 'p2222222-2222-2222-2222-222222222222',
+    product_id: 'b2222222-2222-4222-8222-222222222222',
     user_name: 'Alex Rivera',
     rating: 5,
     title: 'Timeless design and great weight',

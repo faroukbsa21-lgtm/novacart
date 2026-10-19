@@ -160,12 +160,13 @@ export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
       is_featured: editIsFeatured
     };
 
+    const targetId = editingProduct.id;
     // Optimistic realtime update in local state
-    setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...payload } : p));
+    setProducts(prev => prev.map(p => p.id === targetId ? { ...p, ...payload } : p));
     setEditingProduct(null);
 
     try {
-      await api.updateProduct(editingProduct.id, payload);
+      await api.updateProduct(targetId, payload);
       showNotification(`Produit "${payload.title}" mis à jour avec succès !`);
       if (onProductUpdated) onProductUpdated();
       fetchAllAdminData(true);
@@ -194,8 +195,8 @@ export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
 
     try {
       const res = await api.createProduct(productPayload);
-      const createdItem = res?.data || productPayload;
-      setProducts(prev => [createdItem, ...prev]);
+      const createdItem = res?.data || res?.product || productPayload;
+      setProducts(prev => [createdItem, ...prev.filter(p => p.id !== createdItem.id)]);
       showNotification(`Produit "${productPayload.title}" ajouté avec succès !`);
       
       // Reset form

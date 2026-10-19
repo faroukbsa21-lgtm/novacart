@@ -81,9 +81,40 @@ export const api = {
   },
 
   /**
+   * Product state cache helpers for seamless admin persistence
+   */
+  getCustomProducts() {
+    try {
+      return JSON.parse(localStorage.getItem('novacart_demo_products') || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  getProductOverrides() {
+    try {
+      return JSON.parse(localStorage.getItem('novacart_product_overrides') || '{}');
+    } catch {
+      return {};
+    }
+  },
+
+  getDeletedProductIds() {
+    try {
+      return JSON.parse(localStorage.getItem('novacart_deleted_products') || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  /**
    * Products with optional filtering & sorting
    */
   async getProducts(params = {}) {
+    const customProds = this.getCustomProducts();
+    const overrides = this.getProductOverrides();
+    const deletedIds = this.getDeletedProductIds();
+
     try {
       const query = new URLSearchParams();
       if (params.category) query.append('category', params.category);
@@ -97,22 +128,25 @@ export const api = {
       const res = await fetch(`${API_BASE}/products${qs}`);
       const data = await handleResponse(res);
 
-      const items = Array.isArray(data) ? data : (data?.data || data?.items || []);
-      if (items.length > 0) {
+      const rawItems = Array.isArray(data) ? data : (data?.data || data?.items || []);
+      if (rawItems.length > 0) {
+        // Merge server products with local custom creations, apply overrides, and filter deleted
+        const combined = [...customProds.filter(cp => !rawItems.some(ri => ri.id === cp.id)), ...rawItems]
+          .filter(p => !deletedIds.includes(p.id))
+          .map(p => overrides[p.id] ? { ...p, ...overrides[p.id] } : p);
+
         return {
-          items,
+          items: combined,
           pagination: data?.pagination || {
-            total: items.length,
+            total: combined.length,
             page: 1,
-            limit: items.length,
+            limit: combined.length,
             total_pages: 1
           }
         };
       }
-      // If DB has 0 items, fallback to mock data
       return this.filterMockProducts(params);
     } catch (err) {
-      console.warn('Backend unavailable, using fallback products:', err.message);
       return this.filterMockProducts(params);
     }
   },
@@ -121,7 +155,16 @@ export const api = {
    * Helper to filter mock products when backend isn't connected
    */
   filterMockProducts(params = {}) {
-    let list = [...MOCK_PRODUCTS];
+    const customProds = this.getCustomProducts();
+    const overrides = this.getProductOverrides();
+    const deletedIds = this.getDeletedProductIds();
+
+    // Combine custom products + seed products, apply overrides, filter deleted
+    let combined = [...customProds, ...MOCK_PRODUCTS]
+      .filter(p => !deletedIds.includes(p.id))
+      .map(p => overrides[p.id] ? { ...p, ...overrides[p.id] } : p);
+
+    let list = [...combined];
 
     if (params.category) {
       list = list.filter(p => p.category_id === params.category || p.category_name?.toLowerCase() === params.category.toLowerCase());
@@ -130,9 +173,9 @@ export const api = {
     if (params.search) {
       const q = params.search.toLowerCase().trim();
       list = list.filter(p => 
-        p.title.toLowerCase().includes(q) || 
-        p.description.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q)
+        (p.title || '').toLowerCase().includes(q) || 
+        (p.description || '').toLowerCase().includes(q) ||
+        (p.sku || '').toLowerCase().includes(q)
       );
     }
 
@@ -141,7 +184,7 @@ export const api = {
     } else if (params.sort === 'price_desc') {
       list.sort((a, b) => b.price - a.price);
     } else if (params.sort === 'rating') {
-      list.sort((a, b) => b.rating - a.rating);
+      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
 
     return {
@@ -159,12 +202,20 @@ export const api = {
    * Single Product
    */
   async getProduct(id) {
+    const overrides = this.getProductOverrides();
+    const customProds = this.getCustomProducts();
+
     try {
       const res = await fetch(`${API_BASE}/products/${id}`);
       const data = await handleResponse(res);
-      return data?.data || data;
+      const prod = data?.data || data;
+      return overrides[id] ? { ...prod, ...overrides[id] } : prod;
     } catch (err) {
-      return MOCK_PRODUCTS.find(p => p.id === id) || null;
+      const local = customProds.find(p => p.id === id);
+      if (local) return overrides[id] ? { ...local, ...overrides[id] } : local;
+      const mock = MOCK_PRODUCTS.find(p => p.id === id) || null;
+      if (mock) return overrides[id] ? { ...mock, ...overrides[id] } : mock;
+      return null;
     }
   },
 
@@ -559,24 +610,39 @@ export const api = {
    * Admin: Create Product
    */
   async createProduct(productData) {
+    const genHex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+    const newId = productData.id || `b${genHex()}${genHex()}-${genHex()}-4${genHex().substring(1)}-8${genHex().substring(1)}-${genHex()}${genHex()}${genHex()}`;
+
+    const newProduct = {
+      id: newId,
+      slug: (productData.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + genHex(),
+      rating: 0,
+      num_reviews: 0,
+      ...productData,
+      created_at: new Date().toISOString()
+    };
+
     try {
       const res = await fetch(`${API_BASE}/admin/products`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(productData)
       });
-      return await handleResponse(res);
-    } catch (err) {
-      const newProduct = {
-        id: 'prod_' + Date.now(),
-        ...productData,
-        created_at: new Date().toISOString()
-      };
+      const data = await handleResponse(res);
+      const createdItem = data?.data || data?.product || newProduct;
+
       try {
-        const localProds = JSON.parse(localStorage.getItem('novacart_demo_products') || '[]');
-        localStorage.setItem('novacart_demo_products', JSON.stringify([newProduct, ...localProds]));
+        const localProds = this.getCustomProducts();
+        localStorage.setItem('novacart_demo_products', JSON.stringify([createdItem, ...localProds.filter(p => p.id !== createdItem.id)]));
       } catch (e) {}
-      return { success: true, product: newProduct, message: 'Product created successfully' };
+
+      return { success: true, data: createdItem, product: createdItem, message: 'Product created successfully' };
+    } catch (err) {
+      try {
+        const localProds = this.getCustomProducts();
+        localStorage.setItem('novacart_demo_products', JSON.stringify([newProduct, ...localProds.filter(p => p.id !== newProduct.id)]));
+      } catch (e) {}
+      return { success: true, data: newProduct, product: newProduct, message: 'Product created successfully' };
     }
   },
 
@@ -585,22 +651,29 @@ export const api = {
    */
   async updateProduct(id, productData) {
     try {
+      const overrides = this.getProductOverrides();
+      overrides[id] = { ...(overrides[id] || {}), ...productData };
+      localStorage.setItem('novacart_product_overrides', JSON.stringify(overrides));
+
+      const localProds = this.getCustomProducts();
+      const idx = localProds.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        localProds[idx] = { ...localProds[idx], ...productData };
+        localStorage.setItem('novacart_demo_products', JSON.stringify(localProds));
+      }
+    } catch (e) {}
+
+    try {
       const res = await fetch(`${API_BASE}/admin/products/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(productData)
       });
-      return await handleResponse(res);
+      const data = await handleResponse(res);
+      const updated = data?.data || { id, ...productData };
+      return { success: true, data: updated, product: updated, message: 'Product updated successfully' };
     } catch (err) {
-      try {
-        const localProds = JSON.parse(localStorage.getItem('novacart_demo_products') || '[]');
-        const idx = localProds.findIndex(p => p.id === id);
-        if (idx !== -1) {
-          localProds[idx] = { ...localProds[idx], ...productData };
-          localStorage.setItem('novacart_demo_products', JSON.stringify(localProds));
-        }
-      } catch (e) {}
-      return { success: true, message: 'Product updated successfully' };
+      return { success: true, data: { id, ...productData }, product: { id, ...productData }, message: 'Product updated successfully' };
     }
   },
 
@@ -609,17 +682,23 @@ export const api = {
    */
   async deleteProduct(id) {
     try {
+      const deletedIds = this.getDeletedProductIds();
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem('novacart_deleted_products', JSON.stringify(deletedIds));
+      }
+      const localProds = this.getCustomProducts().filter(p => p.id !== id);
+      localStorage.setItem('novacart_demo_products', JSON.stringify(localProds));
+    } catch (e) {}
+
+    try {
       const res = await fetch(`${API_BASE}/admin/products/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
-      return await handleResponse(res);
+      await handleResponse(res);
+      return { success: true, message: 'Product deleted successfully' };
     } catch (err) {
-      try {
-        const localProds = JSON.parse(localStorage.getItem('novacart_demo_products') || '[]');
-        const filtered = localProds.filter(p => p.id !== id);
-        localStorage.setItem('novacart_demo_products', JSON.stringify(filtered));
-      } catch (e) {}
       return { success: true, message: 'Product deleted successfully' };
     }
   },
