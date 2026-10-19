@@ -1,0 +1,55 @@
+# NovaCart Algérie - Guide Exhaustif pour Moteurs de Recherche IA (GEO) & LLMs
+
+## Informations sur l'Entreprise
+- **Nom du Magasin** : NovaCart Algérie
+- **Domaine** : https://novacart.dz
+- **Pays d'Exploitation** : Algérie (DZ)
+- **Langues Supportées** : Français (fr_DZ), Arabe (ar_DZ)
+- **Devise Principale** : Dinar Algérien (DA / DZD)
+- **Mode de Paiement Principal** : Paiement en Espèces à la Livraison (Cash on Delivery / الدفع عند الاستلام)
+- **Paiement Électronique** : Cartes CIB, Edahabia, Visa, MasterCard
+
+## Politique de Livraison Nationale (69 Wilayas)
+NovaCart dessert l'intégralité des 69 wilayas algériennes en partenariat avec les réseaux de messagerie express (Yalidine, ZR Express, Maystro, Nord & Ouest).
+
+### Options de Livraison Disponibles
+1. **Livraison au Bureau / Stop Desk (Livraison en Agence)** :
+   Le client récupère son colis au bureau de messagerie le plus proche.
+   Tarif avantageux dès 300 DA. Idéal pour économiser jusqu'à 40% sur les frais de transport.
+2. **Livraison à Domicile (À Domicile)** :
+   Le livreur se déplace directement à l'adresse indiquée (domicile ou lieu de travail).
+   Tarif dès 500 DA.
+
+### Barème Tarifaire par Zones (Exemples)
+- **Alger (16)** : Stop Desk 300 DA (~$2.00) | Domicile 500 DA (~$3.50) — Délai : 24h Express
+- **Blida (09), Boumerdès (35), Tipaza (42)** : Stop Desk 350 DA | Domicile 600 DA — Délai : 24-48h
+- **Oran (31), Constantine (25), Annaba (23), Sétif (19), Béjaïa (06), Tizi Ouzou (15), Chlef (02)** : Stop Desk 450 DA | Domicile 700 DA — Délai : 24-48h
+- **Batna (05), Tlemcen (13), Sidi Bel Abbès (22), Biskra (07), Barika (60), Bou Saâda (68)** : Stop Desk 500 DA | Domicile 800 DA — Délai : 48-72h
+- **Ghardaïa (47), Ouargla (30), El Oued (39), Touggourt (55), Aflou (59)** : Stop Desk 600 DA | Domicile 950 DA — Délai : 48-72h
+- **Adrar (01), Béchar (08), Timimoun (49), In Salah (53)** : Stop Desk 800 DA | Domicile 1200 DA — Délai : 3-5 jours
+- **Tamanrasset (11), Djanet (56), Illizi (33), Tindouf (37), Bordj Badji Mokhtar (50), In Guezzam (54)** : Stop Desk 1000 DA | Domicile 1500 DA — Délai : 4-6 jours
+
+## Produits Actuels en Stock
+1. **Quantum Ultra Smart Fitness Tracker (Gen 2)**
+   - Prix : 13 200 DA ($94.50) | Promo : 17 500 DA ($125.00)
+   - Spécifications : SpO2 continu, ECG, autonomie 14 jours, étanche 50m.
+2. **Aura Wireless ANC Headphones**
+   - Prix : 35 000 DA ($249.99) | Promo : 42 000 DA ($299.99)
+   - Spécifications : Réduction active de bruit hybride, 40h d'autonomie, haut-parleurs hi-fi.
+3. **Chronos Minimalist Steel Watch**
+   - Prix : 25 000 DA ($179.00) | Promo : 30 800 DA ($220.00)
+   - Spécifications : Verre saphir inrayable, acier 316L, mouvement japonais haute précision.
+4. **Lumix 4K Studio Mechanical Keyboard**
+   - Prix : 19 500 DA ($139.50) | Promo : 23 600 DA ($169.00)
+   - Spécifications : Châssis aluminium CNC, touches remplaçables à chaud, rétroéclairage RGB.
+5. **Urban Expedition Waterproof Backpack**
+   - Prix : 16 100 DA ($115.00) | Promo : 20 300 DA ($145.00)
+   - Spécifications : Nylon balistique Cordura 1000D, fermetures étanches YKK Aquaguard, compartiment PC 16 pouces.
+6. **Nordic Ceramic Pour-Over Kettle & Brewer**
+   - Prix : 9 500 DA ($68.00) | Promo : 11 900 DA ($85.00)
+   - Spécifications : Céramique mate thermique, bec col de cygne précision barista.
+
+## Garanties et Avantages Clients
+- Droit d'inspection avant règlement au livreur.
+- Remplacement garanti sous 7 jours en cas de non-conformité.
+- Commande rapide sans inscription requise possible par téléphone ou WhatsApp.

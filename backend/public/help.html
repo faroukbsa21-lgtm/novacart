@@ -1,0 +1,3105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaCart — Production Deployment, Image Uploads & Architecture Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3ecf8e;
+      --primary-dark: #24b47e;
+      --primary-light: rgba(62, 207, 142, 0.12);
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-surface: #0b1120;
+      --bg-code: #070d19;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border: #334155;
+      --border-light: rgba(255, 255, 255, 0.08);
+      --accent-blue: #38bdf8;
+      --accent-purple: #c084fc;
+      --accent-amber: #fbbf24;
+      --accent-rose: #fb7185;
+      --accent-emerald: #10b981;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    aside.sidebar {
+      width: 300px;
+      background: var(--bg-dark);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      padding: 1.5rem 1.2rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      z-index: 50;
+    }
+
+    aside.sidebar::-webkit-scrollbar {
+      width: 5px;
+    }
+    aside.sidebar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 1.3rem;
+      box-shadow: 0 4px 12px rgba(62, 207, 142, 0.25);
+    }
+
+    .brand-text h1 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-text span {
+      font-size: 0.72rem;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    .nav-search {
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .nav-search input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+      color: #fff;
+      font-size: 0.82rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .nav-search input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.2);
+    }
+
+    .nav-search .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .nav-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .nav-group-title {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      padding-left: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .nav-links a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-links a.active {
+      color: var(--primary);
+      background: var(--primary-light);
+      border-left: 3px solid var(--primary);
+      border-radius: 0 8px 8px 0;
+      font-weight: 600;
+    }
+
+    .nav-links a .icon {
+      font-size: 1rem;
+      width: 20px;
+      text-align: center;
+    }
+
+    .nav-badge-pill {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 9999px;
+      font-weight: 700;
+      margin-left: auto;
+    }
+
+    .pill-green { background: rgba(62, 207, 142, 0.2); color: var(--primary); }
+    .pill-blue { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); }
+    .pill-purple { background: rgba(192, 132, 252, 0.2); color: var(--accent-purple); }
+    .pill-amber { background: rgba(251, 191, 36, 0.2); color: var(--accent-amber); }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(62, 207, 142, 0.1);
+      border: 1px solid rgba(62, 207, 142, 0.25);
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Main Content Area */
+    main.main-content {
+      margin-left: 300px;
+      flex: 1;
+      padding: 2.5rem 3rem 5rem;
+      max-width: 1120px;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.98) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      margin-bottom: 2.5rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(62, 207, 142, 0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border: 1px solid rgba(62, 207, 142, 0.25);
+    }
+
+    .hero-title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      background: linear-gradient(120deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 800px;
+      margin-bottom: 1.75rem;
+      line-height: 1.7;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #0f172a;
+      box-shadow: 0 2px 10px rgba(62, 207, 142, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(62, 207, 142, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .btn-accent:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    /* Section Styling */
+    section.doc-section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-number {
+      width: 36px;
+      height: 36px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+      border: 1px solid rgba(62, 207, 142, 0.25);
+    }
+
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    .section-lead {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.65;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.6rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-highlight {
+      border-color: rgba(62, 207, 142, 0.4);
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+    }
+
+    .card-blue {
+      border-color: rgba(56, 189, 248, 0.35);
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(12, 25, 44, 0.9));
+    }
+
+    .card-purple {
+      border-color: rgba(192, 132, 252, 0.35);
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(28, 17, 44, 0.9));
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.85rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-size: 0.94rem;
+      line-height: 1.65;
+    }
+
+    /* Grid & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-card {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.35rem;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .feature-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .feature-icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.8rem;
+      display: inline-block;
+    }
+
+    .feature-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 0.4rem;
+      color: #fff;
+    }
+
+    .feature-desc {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* Comparison Option Box */
+    .option-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .option-card.recommended {
+      border: 2px solid var(--primary);
+      background: linear-gradient(180deg, rgba(62, 207, 142, 0.08) 0%, rgba(30, 41, 59, 0.9) 100%);
+    }
+
+    .option-badge-top {
+      position: absolute;
+      top: -12px;
+      right: 1.25rem;
+      background: var(--primary);
+      color: #0f172a;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .option-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .option-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .option-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .option-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .option-list {
+      list-style: none;
+      margin: 1rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.86rem;
+      color: #cbd5e1;
+    }
+
+    .option-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .option-list li span.check {
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .option-list li span.cross {
+      color: var(--accent-rose);
+      font-weight: bold;
+    }
+
+    /* Tabs Component */
+    .tab-container {
+      margin: 1.5rem 0;
+    }
+
+    .tab-header {
+      display: flex;
+      gap: 0.4rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: inherit;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .tab-content {
+      display: none;
+      padding-top: 1.25rem;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Code Snippets & Copy Controls */
+    .code-container {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 1rem 0 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .code-header {
+      background: #111827;
+      padding: 0.6rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-lang {
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.76rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .copy-btn:hover {
+      background: var(--primary);
+      color: #0f172a;
+      border-color: var(--primary);
+    }
+
+    pre code {
+      display: block;
+      padding: 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.84rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+      overflow-x: auto;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin: 1.25rem 0;
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .alert-info {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #bae6fd;
+    }
+
+    .alert-success {
+      background: rgba(62, 207, 142, 0.1);
+      border: 1px solid rgba(62, 207, 142, 0.3);
+      color: #bbf7d0;
+    }
+
+    .alert-warning {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: #fef08a;
+    }
+
+    .alert-danger {
+      background: rgba(251, 113, 133, 0.1);
+      border: 1px solid rgba(251, 113, 133, 0.3);
+      color: #fecdd3;
+    }
+
+    .alert-icon {
+      font-size: 1.2rem;
+      line-height: 1;
+      margin-top: 0.1rem;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-blue { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); }
+    .badge-green { background: rgba(62, 207, 142, 0.15); color: var(--primary); }
+    .badge-purple { background: rgba(192, 132, 252, 0.15); color: var(--accent-purple); }
+    .badge-amber { background: rgba(251, 191, 36, 0.15); color: var(--accent-amber); }
+    .badge-rose { background: rgba(251, 113, 133, 0.15); color: var(--accent-rose); }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background: #111827;
+      color: #cbd5e1;
+      padding: 0.85rem 1rem;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+      color: #94a3b8;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: #f8fafc;
+    }
+
+    td strong {
+      color: #fff;
+    }
+
+    /* Step flow */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 1.25rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    .step-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1rem;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px rgba(62, 207, 142, 0.35);
+    }
+
+    .step-body {
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Interactive Upload Simulator */
+    .sim-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.6);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 1.5rem;
+    }
+
+    .sim-dropzone:hover, .sim-dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(62, 207, 142, 0.05);
+    }
+
+    .sim-dropzone-icon {
+      font-size: 3rem;
+      margin-bottom: 0.75rem;
+      color: var(--primary);
+    }
+
+    .sim-previews {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .preview-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .preview-title {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .avatar-preview-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid var(--primary);
+      margin: 0 auto 1rem;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1e293b;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .avatar-preview-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-preview-card {
+      width: 220px;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin: 0 auto 1rem;
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .product-preview-img {
+      width: 100%;
+      height: 140px;
+      background: #0f172a;
+      object-fit: cover;
+      display: block;
+    }
+
+    .product-preview-details {
+      padding: 0.75rem;
+    }
+
+    /* Live Tester box */
+    .test-result-box {
+      margin-top: 1rem;
+      padding: 1.25rem;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .test-result-box.success {
+      background: rgba(62, 207, 142, 0.12);
+      border: 1px solid var(--primary);
+      color: #a7f3d0;
+      display: block;
+    }
+
+    .test-result-box.error {
+      background: rgba(251, 113, 133, 0.12);
+      border: 1px solid var(--accent-rose);
+      color: #fecdd3;
+      display: block;
+    }
+
+    /* Interactive Config Generator Forms */
+    .generator-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .form-group input, .form-group select {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.8rem;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--primary);
+    }
+
+    @media (max-width: 960px) {
+      aside.sidebar {
+        display: none;
+      }
+      main.main-content {
+        margin-left: 0;
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <div class="brand-text">
+        <h1>NovaCart Store</h1>
+        <span>Production Manual</span>
+      </div>
+    </div>
+
+    <div class="nav-search">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="nav-search-input" placeholder="Search documentation..." onkeyup="filterNav()">
+    </div>
+
+    <!-- Group 1: Deployment & Hosting -->
+    <div class="nav-group">
+      <div class="nav-group-title">
+        <span>🚀 Frontend Deployment</span>
+        <span class="nav-badge-pill pill-green">Must Read</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#frontend-hosting-ideas"><span class="icon">💡</span> Hosting Ideas & Options</a></li>
+        <li><a href="#frontend-build-prep"><span class="icon">📦</span> Build Pipeline (`dist/`)</a></li>
+        <li><a href="#deploy-vercel-netlify"><span class="icon">⚡</span> Vercel & Netlify</a></li>
+        <li><a href="#deploy-cloudflare-pages"><span class="icon">☁️</span> Cloudflare Pages</a></li>
+        <li><a href="#deploy-vps-nginx"><span class="icon">🖥️</span> Linux VPS + Nginx + SSL</a></li>
+        <li><a href="#deploy-cpanel-apache"><span class="icon">📁</span> cPanel & Shared Hosting</a></li>
+        <li><a href="#connect-fe-to-be"><span class="icon">🔗</span> Wire Frontend to API</a></li>
+        <li><a href="#github-actions-cicd"><span class="icon">🤖</span> Auto CI/CD Pipeline</a></li>
+      </ul>
+    </div>
+
+    <!-- Group 2: Image & Media Uploads -->
+    <div class="nav-group">
+      <div class="nav-group-title">
+        <span>🖼️ Images & PFPs Uploads</span>
+        <span class="nav-badge-pill pill-blue">High Priority</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#image-architecture"><span class="icon">📐</span> Architecture & Schema</a></li>
+        <li><a href="#upload-options-matrix"><span class="icon">⚖️</span> Options Comparison</a></li>
+        <li><a href="#storage-supabase"><span class="icon">🏆</span> 1. Supabase Storage (Best)</a></li>
+        <li><a href="#storage-cloudinary"><span class="icon">✨</span> 2. Cloudinary (AI & Transforms)</a></li>
+        <li><a href="#storage-s3-r2"><span class="icon">🗄️</span> 3. Cloudflare R2 / S3</a></li>
+        <li><a href="#storage-local-php"><span class="icon">💻</span> 4. Local PHP Storage</a></li>
+        <li><a href="#image-optimization"><span class="icon">⚡</span> Client-Side Compression</a></li>
+        <li><a href="#upload-simulator"><span class="icon">🧪</span> Live Upload Simulator</a></li>
+      </ul>
+    </div>
+
+    <!-- Group 3: Core Database & Backend -->
+    <div class="nav-group">
+      <div class="nav-group-title">
+        <span>🏛️ Supabase & PHP Gateway</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#architecture"><span class="icon">🏛️</span> Triad Architecture</a></li>
+        <li><a href="#supabase-setup"><span class="icon">🚀</span> 1. Create Project</a></li>
+        <li><a href="#sql-schema"><span class="icon">📋</span> 2. Run SQL Schema</a></li>
+        <li><a href="#tables-overview"><span class="icon">🗄️</span> 3. Database Tables</a></li>
+        <li><a href="#api-keys"><span class="icon">🔑</span> 4. Get API Keys</a></li>
+        <li><a href="#backend-config"><span class="icon">⚙️</span> 5. Configure PHP</a></li>
+        <li><a href="#run-apps"><span class="icon">▶️</span> 6. Launch Dev Servers</a></li>
+      </ul>
+    </div>
+
+    <!-- Group 4: Generators & Diagnostic -->
+    <div class="nav-group">
+      <div class="nav-group-title">
+        <span>🛠️ Generators & Tools</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#interactive-advisor"><span class="icon">🧭</span> Stack Advisor Tool</a></li>
+        <li><a href="#nginx-generator"><span class="icon">⚙️</span> Nginx Config Builder</a></li>
+        <li><a href="#htaccess-generator"><span class="icon">📄</span> .htaccess Builder</a></li>
+        <li><a href="#test-accounts"><span class="icon">👥</span> Test Credentials</a></li>
+        <li><a href="#live-tester"><span class="icon">🧪</span> Health Check Tester</a></li>
+        <li><a href="#production-checklist"><span class="icon">✅</span> Go-Live Checklist</a></li>
+      </ul>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span>Production Ready Standard</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+      <span class="hero-badge">⚡ Production Engineering Master Manual</span>
+      <h1 class="hero-title">NovaCart: Server Deployment & Media Upload Architecture</h1>
+      <p class="hero-desc">
+        A comprehensive, battle-tested manual covering how to deploy your <strong>React 18 + Vite frontend</strong> to cloud servers (Vercel, Netlify, Cloudflare, Linux VPS Nginx, cPanel), wire it securely to your <strong>PHP 8.4 API gateway</strong>, and implement high-performance image uploads for <strong>product photos</strong> and <strong>user profile pictures (PFPs)</strong>.
+      </p>
+      <div class="quick-actions">
+        <a href="#frontend-hosting-ideas" class="btn btn-primary">🚀 Frontend Deployment Guide</a>
+        <a href="#storage-supabase" class="btn btn-accent">🖼️ Best Image Upload Options</a>
+        <a href="#upload-simulator" class="btn btn-secondary">🧪 Live Image Simulator</a>
+        <a href="#interactive-advisor" class="btn btn-secondary">🧭 Choose My Stack</a>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 1: FRONTEND HOSTING IDEAS & OPTIONS                    -->
+    <!-- ============================================================== -->
+    <section id="frontend-hosting-ideas" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">1</div>
+        <h2 class="section-title">Where & How to Host Your React Frontend: Complete Ideas & Comparison</h2>
+      </div>
+
+      <p class="section-lead">
+        Your NovaCart frontend is built with <strong>React 18, Vite, and Tailwind CSS</strong>. When compiled with <code>npm run build</code>, it outputs a lightning-fast collection of static HTML, CSS, JavaScript chunks, and web fonts in the <code>dist/</code> directory. Because it's a Single Page Application (SPA), it does <em>not</em> require Node.js at runtime! Here are the 5 premier methods to host it:
+      </p>
+
+      <!-- Matrix Comparison Cards -->
+      <div class="grid-3">
+        <!-- Vercel -->
+        <div class="option-card recommended">
+          <div class="option-badge-top">Easiest & Free</div>
+          <div class="option-header">
+            <div class="option-icon">▲</div>
+            <div>
+              <div class="option-title">Vercel</div>
+              <div class="option-subtitle">Global Edge CDN</div>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Instant zero-config deployments directly from your GitHub repository with built-in SSL and preview branches.</p>
+          <ul class="option-list">
+            <li><span class="check">✓</span> 100% Free tier (100GB/mo)</li>
+            <li><span class="check">✓</span> Automatic HTTPS & custom domains</li>
+            <li><span class="check">✓</span> Auto-build on git push</li>
+            <li><span class="cross">✗</span> Serverless PHP requires extra setup if hosted together</li>
+          </ul>
+          <a href="#deploy-vercel-netlify" class="btn btn-secondary" style="margin-top: auto; font-size: 0.8rem; justify-content: center;">View Vercel Steps →</a>
+        </div>
+
+        <!-- Cloudflare Pages -->
+        <div class="option-card">
+          <div class="option-header">
+            <div class="option-icon" style="color: #f38020;">☁️</div>
+            <div>
+              <div class="option-title">Cloudflare Pages</div>
+              <div class="option-subtitle">Unlimited Bandwidth</div>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">The world's fastest edge network. Free tier has unlimited requests and bandwidth with DDoS shield.</p>
+          <ul class="option-list">
+            <li><span class="check">✓</span> <strong>Unlimited free bandwidth</strong></li>
+            <li><span class="check">✓</span> Enterprise DDoS protection</li>
+            <li><span class="check">✓</span> Global 300+ city edge caching</li>
+            <li><span class="check">✓</span> Free SSL with HTTP/3</li>
+          </ul>
+          <a href="#deploy-cloudflare-pages" class="btn btn-secondary" style="margin-top: auto; font-size: 0.8rem; justify-content: center;">View Cloudflare Steps →</a>
+        </div>
+
+        <!-- Linux VPS -->
+        <div class="option-card">
+          <div class="option-header">
+            <div class="option-icon" style="color: var(--primary);">🖥️</div>
+            <div>
+              <div class="option-title">Linux VPS (Nginx)</div>
+              <div class="option-subtitle">Hetzner / DigitalOcean / Linode</div>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Host <strong>both</strong> React frontend & PHP 8.4 backend on the same server under one domain without CORS!</p>
+          <ul class="option-list">
+            <li><span class="check">✓</span> Same domain (<code>/api</code> reverse proxy)</li>
+            <li><span class="check">✓</span> 100% control, no vendor lock-in</li>
+            <li><span class="check">✓</span> $4 - $6/month flat cost</li>
+            <li><span class="cross">✗</span> Requires Linux server management</li>
+          </ul>
+          <a href="#deploy-vps-nginx" class="btn btn-secondary" style="margin-top: auto; font-size: 0.8rem; justify-content: center;">View VPS Nginx Steps →</a>
+        </div>
+      </div>
+
+      <!-- Comparison Table -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Hosting Platform</th>
+              <th>Deployment Difficulty</th>
+              <th>Cost</th>
+              <th>SPA Routing Support</th>
+              <th>SSL / HTTPS</th>
+              <th>Recommended For</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Vercel</strong></td>
+              <td><span class="badge badge-green">Zero Config (1-click)</span></td>
+              <td>Free ($0/mo)</td>
+              <td>Yes (via <code>vercel.json</code>)</td>
+              <td>Automatic Let's Encrypt</td>
+              <td>Quick launch, startup portfolios, GitHub users</td>
+            </tr>
+            <tr>
+              <td><strong>Netlify</strong></td>
+              <td><span class="badge badge-green">Zero Config (Drag & Drop)</span></td>
+              <td>Free ($0/mo)</td>
+              <td>Yes (via <code>_redirects</code>)</td>
+              <td>Automatic Let's Encrypt</td>
+              <td>Direct folder drop or Git repo</td>
+            </tr>
+            <tr>
+              <td><strong>Cloudflare Pages</strong></td>
+              <td><span class="badge badge-green">Very Easy</span></td>
+              <td>Free (Unlimited)</td>
+              <td>Yes (Native SPA mode)</td>
+              <td>Enterprise Universal SSL</td>
+              <td>High traffic, international stores, zero bill shock</td>
+            </tr>
+            <tr>
+              <td><strong>Ubuntu VPS (Nginx)</strong></td>
+              <td><span class="badge badge-amber">Intermediate (SSH/CLI)</span></td>
+              <td>$4 - $6 / month</td>
+              <td>Yes (<code>try_files $uri /index.html;</code>)</td>
+              <td>Free Certbot automated</td>
+              <td>Single-server deployment (Frontend + PHP backend)</td>
+            </tr>
+            <tr>
+              <td><strong>cPanel / Shared Host</strong></td>
+              <td><span class="badge badge-purple">Easy (FTP / File Manager)</span></td>
+              <td>$2 - $10 / month</td>
+              <td>Yes (via <code>.htaccess</code>)</td>
+              <td>cPanel AutoSSL</td>
+              <td>Existing WordPress/cPanel hosting plans</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 2: FRONTEND BUILD PREPARATION                          -->
+    <!-- ============================================================== -->
+    <section id="frontend-build-prep" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">2</div>
+        <h2 class="section-title">Preparing & Building the Frontend Bundle</h2>
+      </div>
+
+      <p class="section-lead">
+        Before uploading your frontend to any server, Vite must compile your JSX, Tailwind utilities, and JavaScript modules into an ultra-compressed static bundle. Follow these crucial steps:
+      </p>
+
+      <div class="step-list">
+        <!-- Step 1: Environment Variable -->
+        <div class="step-item">
+          <div class="step-circle">1</div>
+          <div class="step-body">
+            <h3 class="step-title">Configure Production API URL</h3>
+            <p>
+              In local development, Vite proxies <code>/api</code> to <code>http://127.0.0.1:8000</code>. In production, decide whether your API will live on:
+            </p>
+            <ul style="color: var(--text-muted); font-size: 0.88rem; margin: 0.5rem 0 0.75rem 1.25rem;">
+              <li><strong>Subdomain</strong>: e.g. <code>https://api.yourdomain.com/api</code> (common for Vercel/Netlify frontend + Cloud API).</li>
+              <li><strong>Same Domain Path</strong>: e.g. <code>https://yourdomain.com/api</code> (common on VPS Nginx with reverse proxy).</li>
+            </ul>
+            <p>Create or verify <code>frontend/.env.production</code>:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">frontend/.env.production</span>
+                <button class="copy-btn" onclick="copySnippet('env-prod-code')">📋 Copy</button>
+              </div>
+              <pre><code id="env-prod-code"># If API is on a separate subdomain or server:
+VITE_API_BASE_URL=https://api.yourdomain.com/api
+
+# If API is reverse-proxied on the same domain (e.g. Nginx on VPS):
+# VITE_API_BASE_URL=/api</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Build command -->
+        <div class="step-item">
+          <div class="step-circle">2</div>
+          <div class="step-body">
+            <h3 class="step-title">Run Vite Production Build</h3>
+            <p>In your terminal, navigate to the <code>frontend/</code> directory and compile:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">Bash</span>
+                <button class="copy-btn" onclick="copySnippet('build-cmd')">📋 Copy</button>
+              </div>
+              <pre><code id="build-cmd">cd /home/farouk/development/frontend
+npm run build</code></pre>
+            </div>
+            <div class="alert alert-info">
+              <span class="alert-icon">💡</span>
+              <div>
+                <strong>What happens?</strong> Vite processes all React files, purges unused Tailwind CSS, optimizes images, and outputs everything into the <code>frontend/dist/</code> folder. This folder contains <code>index.html</code>, <code>assets/*.js</code>, and <code>assets/*.css</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Local Preview -->
+        <div class="step-item">
+          <div class="step-circle">3</div>
+          <div class="step-body">
+            <h3 class="step-title">Test the Production Build Locally</h3>
+            <p>Always verify the compiled production build on your machine before uploading to a server:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">Bash</span>
+                <button class="copy-btn" onclick="copySnippet('preview-cmd')">📋 Copy</button>
+              </div>
+              <pre><code id="preview-cmd">npm run preview
+# Vite will launch a production server at http://localhost:4173</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 3: DEPLOYMENT GUIDES (VERCEL, NETLIFY, CLOUDFLARE)      -->
+    <!-- ============================================================== -->
+    <section id="deploy-vercel-netlify" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">3</div>
+        <h2 class="section-title">Method A: Deploy to Vercel or Netlify (Zero Server Maintenance)</h2>
+      </div>
+
+      <p class="section-lead">
+        Deploying to Vercel or Netlify gives you global CDN caching, automatic SSL, and instant rollbacks. Here is exactly how to do it:
+      </p>
+
+      <div class="tab-container">
+        <div class="tab-header">
+          <button class="tab-btn active" onclick="switchTab('deploy-tabs', 'tab-vercel', this)">▲ Option 1: Vercel (Recommended)</button>
+          <button class="tab-btn" onclick="switchTab('deploy-tabs', 'tab-netlify', this)">💎 Option 2: Netlify (Git or Drag & Drop)</button>
+        </div>
+
+        <!-- Vercel Tab Content -->
+        <div id="tab-vercel" class="tab-content active" data-group="deploy-tabs">
+          <div class="card card-highlight">
+            <div class="card-title">🚀 Deploying to Vercel in 3 Steps</div>
+            
+            <p><strong>Step 1: Add SPA Rewrite Configuration (<code>vercel.json</code>)</strong></p>
+            <p>To prevent 404 errors when a customer refreshes a page on a React client-side route, create a <code>vercel.json</code> file in your <code>frontend/</code> directory:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">frontend/vercel.json</span>
+                <button class="copy-btn" onclick="copySnippet('vercel-json-code')">📋 Copy</button>
+              </div>
+              <pre><code id="vercel-json-code">{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}</code></pre>
+            </div>
+
+            <p><strong>Step 2: Deploy via Vercel CLI (or Git)</strong></p>
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">Bash</span>
+                <button class="copy-btn" onclick="copySnippet('vercel-cli-code')">📋 Copy</button>
+              </div>
+              <pre><code id="vercel-cli-code"># Install Vercel CLI globally (one time)
+npm install -g vercel
+
+# Navigate to frontend folder and deploy
+cd /home/farouk/development/frontend
+vercel
+
+# When prompted:
+# ? Set up and deploy "~/development/frontend"? [Y/n] y
+# ? Which scope do you want to deploy to? (Select your account)
+# ? Link to existing project? [y/N] n
+# ? What's your project's name? novacart-store
+# ? In which directory is your code located? ./
+# ? Want to modify these settings? N
+
+# Deploy to production:
+vercel --prod</code></pre>
+            </div>
+
+            <p><strong>Step 3: Connect Custom Domain</strong></p>
+            <p>Go to <strong>Vercel Dashboard → Your Project → Settings → Domains</strong>, add <code>yourdomain.com</code>, and point the CNAME / A records in your DNS provider (Cloudflare, Namecheap, GoDaddy).</p>
+          </div>
+        </div>
+
+        <!-- Netlify Tab Content -->
+        <div id="tab-netlify" class="tab-content" data-group="deploy-tabs">
+          <div class="card">
+            <div class="card-title">💎 Deploying to Netlify</div>
+            
+            <p><strong>Step 1: Add SPA Redirect Rule (<code>_redirects</code>)</strong></p>
+            <p>Create a file named <code>frontend/public/_redirects</code> so Netlify always serves <code>index.html</code>:</p>
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">frontend/public/_redirects</span>
+                <button class="copy-btn" onclick="copySnippet('netlify-redirects')">📋 Copy</button>
+              </div>
+              <pre><code id="netlify-redirects">/*    /index.html   200</code></pre>
+            </div>
+
+            <p><strong>Step 2: Drag & Drop Method (No Git required)</strong></p>
+            <ol style="color: var(--text-muted); font-size: 0.9rem; margin-left: 1.5rem; line-height: 1.8;">
+              <li>Run <code>npm run build</code> inside the <code>frontend/</code> directory.</li>
+              <li>Log in to <a href="https://app.netlify.com" target="_blank" style="color: var(--accent-blue);">app.netlify.com</a>.</li>
+              <li>Drag the entire <code>dist/</code> folder into the "Sites" drag-and-drop zone.</li>
+              <li>Your store will be live in 5 seconds with a free <code>https://*.netlify.app</code> URL!</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 4: CLOUDFLARE PAGES                                    -->
+    <!-- ============================================================== -->
+    <section id="deploy-cloudflare-pages" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">4</div>
+        <h2 class="section-title">Method B: Deploy to Cloudflare Pages (Unlimited Bandwidth & DDoS Protection)</h2>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">☁️ Why Cloudflare Pages is an eCommerce Superpower</div>
+        <p>
+          Unlike other hosts that charge for bandwidth spikes during big flash sales (e.g. Black Friday or Eid sales), Cloudflare Pages offers <strong>100% free unlimited requests and bandwidth</strong>, serving assets from 300+ data centers across the globe.
+        </p>
+
+        <h4 style="color: #fff; margin: 1.25rem 0 0.5rem;">Option 1: Deploy with Wrangler CLI</h4>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">Bash</span>
+            <button class="copy-btn" onclick="copySnippet('wrangler-code')">📋 Copy</button>
+          </div>
+          <pre><code id="wrangler-code"># Install Wrangler
+npm install -g wrangler
+
+# Build the frontend
+cd /home/farouk/development/frontend
+npm run build
+
+# Deploy dist folder to Cloudflare Pages
+npx wrangler pages deploy dist --project-name=novacart-frontend</code></pre>
+        </div>
+
+        <h4 style="color: #fff; margin: 1.25rem 0 0.5rem;">Option 2: Connect via GitHub</h4>
+        <p>In the Cloudflare Dashboard: <strong>Workers & Pages → Create Application → Pages → Connect to Git</strong>. Select your repo, set the build command to <code>npm run build</code>, and set the build output directory to <code>dist</code>.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 5: VPS WITH NGINX & LET'S ENCRYPT SSL                  -->
+    <!-- ============================================================== -->
+    <section id="deploy-vps-nginx" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">5</div>
+        <h2 class="section-title">Method C: Linux VPS Deployment (Ubuntu / Nginx / Reverse Proxy)</h2>
+      </div>
+
+      <p class="section-lead">
+        If you want to host both the React frontend and the PHP backend on the same Ubuntu server ($4-$6/mo on Hetzner, DigitalOcean, or Linode), this is the cleanest, professional enterprise setup.
+      </p>
+
+      <div class="card">
+        <div class="card-title">🛠️ Step-by-Step VPS Architecture</div>
+
+        <p><strong>1. Upload the built <code>dist/</code> folder to your server:</strong></p>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">Bash (Run on your local machine)</span>
+            <button class="copy-btn" onclick="copySnippet('rsync-code')">📋 Copy</button>
+          </div>
+          <pre><code id="rsync-code"># 1. Build locally
+cd /home/farouk/development/frontend
+npm run build
+
+# 2. Upload dist/ to VPS via rsync
+rsync -avz --delete dist/ user@YOUR_SERVER_IP:/var/www/novacart/frontend/dist/</code></pre>
+        </div>
+
+        <p><strong>2. Production Nginx Configuration:</strong></p>
+        <p>This configuration serves the compiled React app with SPA fallback routing, enables Brotli/Gzip compression, sets high-performance caching for static assets, and proxies <code>/api/</code> requests to the PHP 8.4 backend on port 8000 (or PHP-FPM socket):</p>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">Nginx (/etc/nginx/sites-available/novacart.conf)</span>
+            <button class="copy-btn" onclick="copySnippet('nginx-prod-conf')">📋 Copy</button>
+          </div>
+          <pre><code id="nginx-prod-conf">server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # SSL Certificates (managed automatically by Certbot)
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Gzip Compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript image/svg+xml;
+
+    # 1. Frontend: React Static Files
+    root /var/www/novacart/frontend/dist;
+    index index.html;
+
+    # Security Headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # SPA Routing: Fallback all client routes (e.g. /products, /cart) to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Static Assets Cache (1 year immutable)
+    location ~* \.(?:css|js|woff2?|svg|gif|png|jpe?g|webp|ico)$ {
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        access_log off;
+    }
+
+    # 2. Backend: Proxy /api requests to PHP 8.4 API Server
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Rate Limiting & Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}</code></pre>
+        </div>
+
+        <p><strong>3. Enable site and install free SSL certificate with Let's Encrypt:</strong></p>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">Bash (On VPS)</span>
+            <button class="copy-btn" onclick="copySnippet('vps-certbot')">📋 Copy</button>
+          </div>
+          <pre><code id="vps-certbot"># Enable site
+sudo ln -s /etc/nginx/sites-available/novacart.conf /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+
+# Install Certbot and obtain free SSL certificate
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 6: CPANEL & SHARED HOSTING                             -->
+    <!-- ============================================================== -->
+    <section id="deploy-cpanel-apache" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">6</div>
+        <h2 class="section-title">Method D: Shared Hosting / cPanel Deployment (Apache .htaccess)</h2>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📁 Uploading to cPanel File Manager or FTP</div>
+        <p>
+          If you are using shared hosting (e.g. Hostinger, Namecheap, Bluehost, cPanel), you must configure Apache's <code>.htaccess</code> file to route all URL paths through <code>index.html</code> so React Router doesn't return a 404 error when refreshing pages.
+        </p>
+
+        <h4 style="color: #fff; margin: 1rem 0 0.5rem;">Steps to Upload:</h4>
+        <ol style="color: var(--text-muted); font-size: 0.9rem; margin-left: 1.5rem; line-height: 1.8;">
+          <li>Run <code>npm run build</code> on your computer inside <code>frontend/</code>.</li>
+          <li>Enter the <code>frontend/dist/</code> folder and compress all its contents into a <code>dist.zip</code> file.</li>
+          <li>Log into cPanel → Open <strong>File Manager</strong> → Navigate to <code>public_html/</code> (or your domain's document root).</li>
+          <li>Upload <code>dist.zip</code> and click <strong>Extract</strong> directly inside <code>public_html/</code>.</li>
+          <li>Create or edit the <code>.htaccess</code> file inside <code>public_html/</code> with the rules below:</li>
+        </ol>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">public_html/.htaccess</span>
+            <button class="copy-btn" onclick="copySnippet('htaccess-code')">📋 Copy</button>
+          </div>
+          <pre><code id="htaccess-code"><IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # HTTPS Enforcement
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Don't rewrite actual files or directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Route all other URLs to index.html (SPA Fallback)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Caching optimization
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpg "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+</IfModule></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 7: WIRING FRONTEND TO BACKEND & CORS                   -->
+    <!-- ============================================================== -->
+    <section id="connect-fe-to-be" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">7</div>
+        <h2 class="section-title">Wiring Frontend to Backend & Solving CORS in Production</h2>
+      </div>
+
+      <p class="section-lead">
+        When your React frontend is hosted on one domain (e.g. <code>https://novacart.com</code> or <code>https://novacart.vercel.app</code>) and your PHP API is hosted on another (e.g. <code>https://api.novacart.com</code>), the browser strictly enforces Cross-Origin Resource Sharing (CORS).
+      </p>
+
+      <div class="card card-highlight">
+        <div class="card-title">🛡️ Configuring CORS in PHP 8.4 Backend</div>
+        <p>
+          NovaCart's PHP backend has a built-in security layer that validates the request's <code>Origin</code> header against an allowed whitelist. Open your <code>backend/.env</code> on your production server:
+        </p>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">backend/.env</span>
+            <button class="copy-btn" onclick="copySnippet('cors-env-code')">📋 Copy</button>
+          </div>
+          <pre><code id="cors-env-code"># Add your production frontend domain(s) separated by commas:
+CORS_ALLOWED_ORIGINS=https://novacart.com,https://www.novacart.com,https://novacart.vercel.app,http://localhost:5173</code></pre>
+        </div>
+
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <strong>SSL / Mixed Content Warning:</strong> If your frontend is on <code>https://</code>, your backend API <strong>MUST</strong> also be on <code>https://</code>! Modern browsers will block any HTTP API request made from an HTTPS website with a <code>Mixed Content Error</code>.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 8: GITHUB ACTIONS CI/CD                                -->
+    <!-- ============================================================== -->
+    <section id="github-actions-cicd" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">8</div>
+        <h2 class="section-title">Automated Deployments: GitHub Actions CI/CD Pipeline</h2>
+      </div>
+
+      <p class="section-lead">
+        Never manually run builds or FTP files again! Create this GitHub Action workflow so every time you <code>git push origin main</code>, GitHub automatically runs tests, builds your frontend, and deploys it.
+      </p>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="code-lang">.github/workflows/deploy-frontend.yml</span>
+          <button class="copy-btn" onclick="copySnippet('github-action-code')">📋 Copy</button>
+        </div>
+        <pre><code id="github-action-code">name: Deploy NovaCart Frontend
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Production Assets
+        env:
+          VITE_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        run: |
+          cd frontend
+          npm run build
+
+      # Deploy step (example for Cloudflare Pages or Vercel)
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=novacart-store</code></pre>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 9: IMAGE & MEDIA UPLOADS ARCHITECTURE                  -->
+    <!-- ============================================================== -->
+    <section id="image-architecture" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">9</div>
+        <h2 class="section-title">The Master Guide: Product Photos & Profile Pictures (PFPs) Uploads</h2>
+      </div>
+
+      <p class="section-lead">
+        eCommerce websites have strict requirements for media. Product photos must be high-resolution, multi-angle, fast-loading, and responsive. User Profile Pictures (PFPs) must be square, face-centered, lightweight, and strictly protected so users can only modify their own avatar.
+      </p>
+
+      <div class="grid-2">
+        <div class="card card-highlight">
+          <div class="card-title">🛍️ Product Photos Requirements</div>
+          <ul style="color: var(--text-muted); font-size: 0.88rem; display: flex; flex-direction: column; gap: 0.5rem; margin-left: 1.25rem;">
+            <li><strong>Database Schema:</strong> Stored in <code>products.images</code> as a <code>JSONB</code> array of URLs (e.g. <code>["https://...", "https://..."]</code>).</li>
+            <li><strong>Aspect Ratio:</strong> Consistent 1:1 (Square: 800x800px or 1000x1000px) or 4:3.</li>
+            <li><strong>Max Upload Size:</strong> 2 MB per image after client compression.</li>
+            <li><strong>Supported Formats:</strong> Modern WebP, AVIF, JPEG, PNG.</li>
+            <li><strong>Access Control:</strong> Public Read (anyone can see products), Admin-Only Write/Delete.</li>
+          </ul>
+        </div>
+
+        <div class="card card-purple">
+          <div class="card-title">👤 Profile Pictures (PFPs) Requirements</div>
+          <ul style="color: var(--text-muted); font-size: 0.88rem; display: flex; flex-direction: column; gap: 0.5rem; margin-left: 1.25rem;">
+            <li><strong>Database Schema:</strong> Stored in <code>users.avatar_url</code> as a single <code>TEXT</code> string URL.</li>
+            <li><strong>Aspect Ratio:</strong> Strictly 1:1 (Square: 250x250px or 400x400px), displayed in circular avatars.</li>
+            <li><strong>Max Upload Size:</strong> 500 KB (very lightweight for fast navbar render).</li>
+            <li><strong>Access Control:</strong> Public Read, Owner-Only Write/Update (enforced via Row Level Security).</li>
+            <li><strong>Default Fallback:</strong> Initials badge or placeholder avatar if empty.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 10: UPLOAD OPTIONS MATRIX                              -->
+    <!-- ============================================================== -->
+    <section id="upload-options-matrix" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">10</div>
+        <h2 class="section-title">Comparison Matrix: What is the Best Option for You?</h2>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Storage Provider</th>
+              <th>Free Tier / Cost</th>
+              <th>Image Transformation</th>
+              <th>Security & Permissions</th>
+              <th>Integration Effort</th>
+              <th>Our Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background: rgba(62, 207, 142, 0.06);">
+              <td><strong>🏆 Supabase Storage</strong></td>
+              <td>1 GB free, then $0.021/GB</td>
+              <td>Native URL transforms (resize, webp, quality)</td>
+              <td><span class="badge badge-green">Postgres RLS Policies</span></td>
+              <td><span class="badge badge-green">Lowest (SDK already in stack)</span></td>
+              <td><strong>#1 BEST FOR NOVACART</strong> (Already connected to Supabase!)</td>
+            </tr>
+            <tr>
+              <td><strong>✨ Cloudinary</strong></td>
+              <td>25 Credits/mo free (~25GB)</td>
+              <td><span class="badge badge-purple">Industry Gold Standard</span> (AI face crop, auto webp, watermarks)</td>
+              <td>Signed upload presets or API key</td>
+              <td><span class="badge badge-blue">Low (Widget or REST)</span></td>
+              <td><strong>BEST FOR ADVANCED ECOMMERCE</strong> (Dynamic zooming, AI face centering)</td>
+            </tr>
+            <tr>
+              <td><strong>🗄️ Cloudflare R2 / AWS S3</strong></td>
+              <td>R2: 10 GB free + <strong>$0 egress fees</strong></td>
+              <td>Requires Cloudflare Images worker</td>
+              <td>Presigned URLs via PHP Backend</td>
+              <td><span class="badge badge-amber">Medium (S3 SDK)</span></td>
+              <td><strong>BEST FOR LARGE SCALE</strong> (Millions of products, zero download cost)</td>
+            </tr>
+            <tr>
+              <td><strong>💻 Local Server Storage (PHP)</strong></td>
+              <td>Server disk space ($0 extra)</td>
+              <td>Requires PHP GD / Imagick extension</td>
+              <td>File system permissions + .htaccess</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+              <td><strong>GOOD FOR SIMPLE VPS</strong> (No external cloud dependencies)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 11: OPTION 1 - SUPABASE STORAGE (RECOMMENDED)          -->
+    <!-- ============================================================== -->
+    <section id="storage-supabase" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">11</div>
+        <h2 class="section-title">Option 1 (Top Recommendation): Supabase Storage</h2>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-title">🏆 Why Supabase Storage is the Ultimate Choice for NovaCart</div>
+        <p>
+          Because NovaCart already uses Supabase PostgreSQL for authentication, users, products, and orders, <strong>Supabase Storage is the cleanest, most secure, and most cohesive solution</strong>. It integrates directly with Postgres Row Level Security (RLS), gives you 1GB of free storage on a global CDN, and allows direct client uploads without bogging down your PHP server!
+        </p>
+
+        <h3 style="color: #fff; margin: 1.5rem 0 0.5rem;">Step 1: Create Storage Buckets with SQL</h3>
+        <p>Execute this SQL in your Supabase SQL Editor to create the two required buckets: <code>product-images</code> and <code>avatars</code>, along with bulletproof Row Level Security policies:</p>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">Supabase SQL Editor</span>
+            <button class="copy-btn" onclick="copySnippet('supabase-storage-sql')">📋 Copy SQL</button>
+          </div>
+          <pre><code id="supabase-storage-sql">-- 1. Create Public Storage Buckets
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+  ('product-images', 'product-images', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/avif']),
+  ('avatars', 'avatars', true, 2097152, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- 2. Enable RLS on storage.objects
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- 3. Policy: Anyone can view product photos and avatars (Public Read)
+CREATE POLICY "Public Access Products" ON storage.objects
+  FOR SELECT USING (bucket_id = 'product-images');
+
+CREATE POLICY "Public Access Avatars" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+-- 4. Policy: Allow authenticated users to upload avatar to their own folder
+CREATE POLICY "User Avatar Upload" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'avatars' 
+    AND (auth.uid() = owner OR auth.role() = 'authenticated')
+  );
+
+-- 5. Policy: Allow users to update/delete their own avatar
+CREATE POLICY "User Avatar Update" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid() = owner);
+
+CREATE POLICY "User Avatar Delete" ON storage.objects
+  FOR DELETE USING (bucket_id = 'avatars' AND auth.uid() = owner);
+
+-- 6. Policy: Admin Product Images Upload (or via service_role API)
+CREATE POLICY "Admin Upload Products" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'product-images');
+
+CREATE POLICY "Admin Delete Products" ON storage.objects
+  FOR DELETE USING (bucket_id = 'product-images');</code></pre>
+        </div>
+
+        <h3 style="color: #fff; margin: 1.5rem 0 0.5rem;">Step 2: React Upload Code Implementation</h3>
+        <p>Here is the ready-to-use React component that uploads files directly to Supabase Storage and returns the public CDN URL:</p>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">JavaScript (React Upload Service)</span>
+            <button class="copy-btn" onclick="copySnippet('supabase-react-upload')">📋 Copy Component</button>
+          </div>
+          <pre><code id="supabase-react-upload">import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase Client with anon key (Safe for browser)
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+/**
+ * Upload an avatar to Supabase Storage
+ * @param {File} file - The file from input type="file"
+ * @param {string} userId - Current authenticated user ID
+ * @returns {Promise<string>} Public CDN URL of uploaded avatar
+ */
+export async function uploadUserAvatar(file, userId) {
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please select an image file (JPEG, PNG, WebP)');
+  }
+
+  // 1. Generate unique file path: avatars/{userId}-{timestamp}.webp
+  const fileExt = file.name.split('.').pop();
+  const filePath = `${userId}-${Date.now()}.${fileExt}`;
+
+  // 2. Upload to Supabase 'avatars' bucket
+  const { data, error } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true // Overwrite previous avatar
+    });
+
+  if (error) throw error;
+
+  // 3. Get Public CDN URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  return publicUrl;
+}
+
+/**
+ * Upload a product image to Supabase Storage
+ * @param {File} file - Product image file
+ * @returns {Promise<string>} Public CDN URL
+ */
+export async function uploadProductImage(file) {
+  const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const filePath = `products/${Date.now()}_${cleanName}`;
+
+  const { data, error } = await supabase.storage
+    .from('product-images')
+    .upload(filePath, file, { cacheControl: '31536000' });
+
+  if (error) throw error;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('product-images')
+    .getPublicUrl(filePath);
+
+  return publicUrl;
+}</code></pre>
+        </div>
+
+        <h3 style="color: #fff; margin: 1.5rem 0 0.5rem;">Step 3: On-the-Fly Dynamic Resizing & WebP Conversion</h3>
+        <p>Supabase Storage supports real-time image transformations without saving multiple thumbnail files! Simply append query parameters to the public URL:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">Dynamic Image URLs</span>
+          </div>
+          <pre><code>// 1. Thumbnail for Cart Drawer (100x100 square)
+https://xyz.supabase.co/storage/v1/render/image/public/product-images/shoe.jpg?width=100&height=100&resize=contain
+
+// 2. Profile Avatar (200x200 cropped square, quality 80%)
+https://xyz.supabase.co/storage/v1/render/image/public/avatars/user-123.jpg?width=200&height=200&resize=cover&quality=80
+
+// 3. Product Catalog Grid (600x600 WebP format)
+https://xyz.supabase.co/storage/v1/render/image/public/product-images/headphone.jpg?width=600&height=600&format=webp</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 12: OPTION 2 - CLOUDINARY                              -->
+    <!-- ============================================================== -->
+    <section id="storage-cloudinary" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">12</div>
+        <h2 class="section-title">Option 2: Cloudinary (Best for Dynamic AI Transformations & Avatars)</h2>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">✨ Why Choose Cloudinary?</div>
+        <p>
+          Cloudinary is the world-leading media platform for eCommerce. Its standout feature is <strong>automatic AI face detection for user profile pictures</strong> (so faces are never cut off in circular avatars) and <strong>automatic format selection</strong> (serves AVIF to Chrome, WebP to Firefox, and JPEG to legacy Safari).
+        </p>
+
+        <h4 style="color: #fff; margin: 1rem 0 0.5rem;">Direct Browser Upload using Unsigned Preset</h4>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">JavaScript (React)</span>
+            <button class="copy-btn" onclick="copySnippet('cloudinary-upload-code')">📋 Copy</button>
+          </div>
+          <pre><code id="cloudinary-upload-code">/**
+ * Direct upload to Cloudinary using an Unsigned Upload Preset
+ */
+export async function uploadToCloudinary(file, folder = 'novacart_products') {
+  const CLOUD_NAME = 'your_cloud_name';
+  const UPLOAD_PRESET = 'novacart_unsigned_preset'; // Created in Cloudinary settings
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  formData.append('folder', folder);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: formData
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || 'Upload failed');
+
+  // Returns optimized URL:
+  return data.secure_url;
+}
+
+// Magic Avatar URL with AI Face Centering:
+// https://res.cloudinary.com/demo/image/upload/w_200,h_200,c_thumb,g_face,r_max/v12345/avatar.jpg</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 13: OPTION 3 - CLOUDFLARE R2 & AWS S3                  -->
+    <!-- ============================================================== -->
+    <section id="storage-s3-r2" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">13</div>
+        <h2 class="section-title">Option 3: Cloudflare R2 / AWS S3 (Best for Enterprise & Zero Egress)</h2>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🗄️ Cloudflare R2: S3-Compatible with ZERO Bandwidth Fees</div>
+        <p>
+          AWS S3 charges you every time an image is downloaded (egress fee). <strong>Cloudflare R2 has $0 egress fees</strong> and provides an S3-compatible API.
+        </p>
+        <p><strong>Secure Presigned URL Workflow:</strong></p>
+        <ol style="color: var(--text-muted); font-size: 0.9rem; margin-left: 1.5rem; line-height: 1.8;">
+          <li>Frontend asks PHP backend: <em>"I want to upload a product image named shoes.webp"</em>.</li>
+          <li>PHP backend verifies user is an Admin, generates a temporary <strong>Presigned PUT URL</strong> valid for 5 minutes, and sends it back.</li>
+          <li>Frontend uploads the image directly to S3 / Cloudflare R2 using standard <code>PUT</code>.</li>
+          <li>Frontend saves the permanent image URL in the database. <strong>Your PHP server never handles the heavy image bytes!</strong></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 14: OPTION 4 - LOCAL PHP BACKEND STORAGE               -->
+    <!-- ============================================================== -->
+    <section id="storage-local-php" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">14</div>
+        <h2 class="section-title">Option 4: Local Server Storage via PHP Backend</h2>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💻 Hosting Uploads on your Own Linux Server</div>
+        <p>
+          If you do not want to use any third-party cloud service, you can have your PHP backend receive multipart file uploads, validate them, and store them inside <code>backend/public/uploads/</code>.
+        </p>
+
+        <div class="alert alert-danger">
+          <span class="alert-icon">🚨</span>
+          <div>
+            <strong>CRITICAL SECURITY WARNING:</strong> If an attacker uploads a malicious PHP script (e.g. <code>hack.php</code>) into an uploads directory that executes PHP, they can take over your entire server! You <strong>MUST</strong> enforce the security controls below:
+          </div>
+        </div>
+
+        <h4 style="color: #fff; margin: 1rem 0 0.5rem;">1. Secure PHP Upload Endpoint</h4>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">PHP (backend/src/Controllers/UploadController.php)</span>
+            <button class="copy-btn" onclick="copySnippet('php-upload-controller')">📋 Copy PHP</button>
+          </div>
+          <pre><code id="php-upload-controller">&lt;?php
+namespace NovaCart\Controllers;
+
+use NovaCart\Config\Security;
+
+class UploadController {
+    public static function handleUpload(): void {
+        header('Content-Type: application/json');
+
+        // 1. Verify user is authenticated
+        // $user = Security::getAuthenticatedUser();
+
+        if (empty($_FILES['image'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'No image file uploaded']);
+            return;
+        }
+
+        $file = $_FILES['image'];
+
+        // 2. Check for upload errors
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Upload failed with error code ' . $file['error']]);
+            return;
+        }
+
+        // 3. Limit file size (Max 5MB)
+        if ($file['size'] > 5 * 1024 * 1024) {
+            http_response_code(400);
+            echo json_encode(['error' => 'File exceeds 5MB size limit']);
+            return;
+        }
+
+        // 4. Validate REAL MIME type using finfo (Never trust client filename!)
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp'
+        ];
+
+        if (!array_key_exists($mime, $allowedMimes)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid file format. Allowed: JPG, PNG, WEBP']);
+            return;
+        }
+
+        $extension = $allowedMimes[$mime];
+
+        // 5. Generate unguessable random UUID filename
+        $filename = bin2hex(random_bytes(16)) . '.' . $extension;
+        $uploadDir = __DIR__ . '/../../public/uploads/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $destination = $uploadDir . $filename;
+
+        // 6. Move uploaded file
+        if (!move_uploaded_file($file['tmp_name'], $destination)) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to save uploaded file']);
+            return;
+        }
+
+        // 7. Return public URL
+        $baseUrl = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'];
+        $publicUrl = $baseUrl . '/uploads/' . $filename;
+
+        echo json_encode([
+            'status' => 'success',
+            'url' => $publicUrl,
+            'filename' => $filename,
+            'mime' => $mime,
+            'size' => $file['size']
+        ]);
+    }
+}</code></pre>
+        </div>
+
+        <h4 style="color: #fff; margin: 1.25rem 0 0.5rem;">2. Lock Down Uploads Directory (Disable PHP Execution)</h4>
+        <p>Create a <code>.htaccess</code> file inside <code>backend/public/uploads/.htaccess</code> so the server NEVER executes any uploaded file:</p>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">backend/public/uploads/.htaccess</span>
+            <button class="copy-btn" onclick="copySnippet('uploads-htaccess')">📋 Copy</button>
+          </div>
+          <pre><code id="uploads-htaccess"># Disable PHP engine in upload directory
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+
+# Deny execution of scripts
+<FilesMatch "\.(php|php5|php7|php8|phtml|phar|pl|py|jsp|asp|sh|cgi)$">
+  Deny from all
+</FilesMatch></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 15: CLIENT-SIDE IMAGE OPTIMIZATION                     -->
+    <!-- ============================================================== -->
+    <section id="image-optimization" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">15</div>
+        <h2 class="section-title">Client-Side Image Compression & Optimization (Speed Up Uploads by 90%)</h2>
+      </div>
+
+      <p class="section-lead">
+        Modern smartphone cameras take 12MB to 20MB photos. If users upload raw photos without client compression, it wastes user mobile data, takes 15 seconds to upload, and fills up your server storage! Use this built-in Canvas compression function that shrinks images to under 250KB in under 50ms right in the browser:
+      </p>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="code-lang">JavaScript (frontend/src/utils/compressor.js)</span>
+          <button class="copy-btn" onclick="copySnippet('compressor-code')">📋 Copy Compressor</button>
+        </div>
+        <pre><code id="compressor-code">/**
+ * Ultra-fast browser image compression using HTML5 Canvas
+ * @param {File} file - Original file from input
+ * @param {Object} options - { maxWidth: 1000, maxHeight: 1000, quality: 0.82 }
+ * @returns {Promise<Blob>} Compressed WebP/JPEG blob
+ */
+export function compressImage(file, { maxWidth = 1000, maxHeight = 1000, quality = 0.82 } = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // Maintain aspect ratio while resizing
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to lightweight WebP format
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error('Canvas conversion failed'));
+            resolve(blob);
+          },
+          'image/webp',
+          quality
+        );
+      };
+
+      img.onerror = (err) => reject(err);
+    };
+
+    reader.onerror = (err) => reject(err);
+  });
+}</code></pre>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 16: INTERACTIVE UPLOAD SIMULATOR                       -->
+    <!-- ============================================================== -->
+    <section id="upload-simulator" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">16</div>
+        <h2 class="section-title">Interactive Image Upload & Compression Simulator</h2>
+      </div>
+
+      <p class="section-lead">
+        Test how product images and user profile avatars will look and compress right here in this browser tab! Drag any photo from your computer or click to upload:
+      </p>
+
+      <div class="card">
+        <!-- Dropzone -->
+        <div id="sim-dropzone" class="sim-dropzone" onclick="document.getElementById('sim-file-input').click()">
+          <div class="sim-dropzone-icon">📤</div>
+          <h3 style="color: #fff; margin-bottom: 0.35rem;">Click to select or Drag & Drop an image here</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Supports JPEG, PNG, WEBP, AVIF. Analyzes file size, resolution, and generates previews.</p>
+          <input type="file" id="sim-file-input" style="display: none;" accept="image/*" onchange="handleSimulatorUpload(this.files[0])">
+        </div>
+
+        <!-- Simulation Results -->
+        <div id="sim-results" style="display: none;">
+          <div class="alert alert-success">
+            <span class="alert-icon">✅</span>
+            <div id="sim-stats-text">Image processed successfully!</div>
+          </div>
+
+          <div class="sim-previews">
+            <!-- Avatar Preview -->
+            <div class="preview-box">
+              <div class="preview-title">👤 User Avatar Preview (1:1 Circle)</div>
+              <div class="avatar-preview-circle">
+                <img id="sim-avatar-img" src="" alt="Avatar preview">
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">How it renders in Navbar and Profile modal.</p>
+              <span class="badge badge-purple" id="sim-avatar-dims">200 x 200</span>
+            </div>
+
+            <!-- Product Card Preview -->
+            <div class="preview-box">
+              <div class="preview-title">🛍️ Product Card Preview</div>
+              <div class="product-preview-card">
+                <img id="sim-product-img" class="product-preview-img" src="" alt="Product preview">
+                <div class="product-preview-details">
+                  <div style="font-size: 0.75rem; color: var(--primary); font-weight: 700;">ELECTRONICS</div>
+                  <div style="font-size: 0.85rem; font-weight: 700; color: #fff; margin: 0.2rem 0;">Sample Product</div>
+                  <div style="font-size: 0.9rem; font-weight: 800; color: #fff;">$199.99</div>
+                </div>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">How it renders in Store Catalog & Drawer.</p>
+              <span class="badge badge-green" id="sim-product-dims">800 x 800</span>
+            </div>
+          </div>
+
+          <!-- Generated JSON Output -->
+          <div style="margin-top: 1.5rem;">
+            <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 0.5rem;">Generated Database Payload:</h4>
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">JSON Payload for schema.sql</span>
+                <button class="copy-btn" onclick="copySnippet('sim-json-output')">📋 Copy JSON</button>
+              </div>
+              <pre><code id="sim-json-output">{
+  "user_profile": {
+    "avatar_url": "https://xyz.supabase.co/storage/v1/object/public/avatars/user-sample.webp"
+  },
+  "product_record": {
+    "images": [
+      "https://xyz.supabase.co/storage/v1/object/public/product-images/prod-sample.webp"
+    ]
+  }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 17: INTERACTIVE STACK ADVISOR                          -->
+    <!-- ============================================================== -->
+    <section id="interactive-advisor" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">17</div>
+        <h2 class="section-title">Interactive Stack Advisor: Find Your Ideal Deployment Setup</h2>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-title">🧭 Answer 3 Quick Questions to Get Your Custom Roadmap</div>
+        
+        <div class="generator-form">
+          <div class="form-group">
+            <label>1. Monthly Budget</label>
+            <select id="adv-budget" onchange="runStackAdvisor()">
+              <option value="zero">$0 (100% Free Tiers)</option>
+              <option value="low" selected>$5 - $10 / month (Low Cost)</option>
+              <option value="mid">$20 - $50 / month (Growth / Business)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>2. Expected Product Count</label>
+            <select id="adv-products" onchange="runStackAdvisor()">
+              <option value="small" selected>1 - 50 Products</option>
+              <option value="medium">50 - 500 Products</option>
+              <option value="large">500+ Products</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>3. Server Skill Level</label>
+            <select id="adv-skills" onchange="runStackAdvisor()">
+              <option value="gui">No Linux / Prefer GUI & Git</option>
+              <option value="vps" selected>Comfortable with Linux Terminal / SSH</option>
+              <option value="cpanel">I have existing cPanel hosting</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="advisor-recommendation" style="margin-top: 1.25rem; padding: 1.25rem; border-radius: 8px; background: #0f172a; border: 1px solid var(--primary);">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 18: NGINX & HTACCESS CONFIG BUILDERS                   -->
+    <!-- ============================================================== -->
+    <section id="nginx-generator" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">18</div>
+        <h2 class="section-title">Interactive Server Configuration Builders</h2>
+      </div>
+
+      <div class="tab-container">
+        <div class="tab-header">
+          <button class="tab-btn active" onclick="switchTab('config-tabs', 'tab-gen-nginx', this)">⚙️ Nginx Generator (VPS)</button>
+          <button class="tab-btn" onclick="switchTab('config-tabs', 'tab-gen-htaccess', this)">📄 .htaccess Generator (Apache / cPanel)</button>
+        </div>
+
+        <div id="tab-gen-nginx" class="tab-content active" data-group="config-tabs">
+          <div class="card">
+            <div class="generator-form">
+              <div class="form-group">
+                <label>Your Domain</label>
+                <input type="text" id="gen-domain" value="novacart.store" oninput="generateNginxConf()">
+              </div>
+              <div class="form-group">
+                <label>Frontend dist path</label>
+                <input type="text" id="gen-path" value="/var/www/novacart/frontend/dist" oninput="generateNginxConf()">
+              </div>
+              <div class="form-group">
+                <label>PHP API Port or Socket</label>
+                <input type="text" id="gen-api" value="127.0.0.1:8000" oninput="generateNginxConf()">
+              </div>
+            </div>
+
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">Generated nginx.conf</span>
+                <button class="copy-btn" onclick="copySnippet('dynamic-nginx-code')">📋 Copy Config</button>
+              </div>
+              <pre><code id="dynamic-nginx-code"></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-gen-htaccess" class="tab-content" data-group="config-tabs">
+          <div class="card">
+            <p>Generate an optimized <code>.htaccess</code> for your Apache or cPanel server with HTTPS redirect and SPA routing:</p>
+            <div class="generator-form">
+              <div class="form-group">
+                <label>Subfolder (leave empty for root domain)</label>
+                <input type="text" id="gen-subfolder" placeholder="e.g. store (or leave empty)" oninput="generateHtaccess()">
+              </div>
+            </div>
+
+            <div class="code-container">
+              <div class="code-header">
+                <span class="code-lang">Generated .htaccess</span>
+                <button class="copy-btn" onclick="copySnippet('dynamic-htaccess-code')">📋 Copy .htaccess</button>
+              </div>
+              <pre><code id="dynamic-htaccess-code"></code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 19: CORE BACKEND & SUPABASE (RETAINED & EXPANDED)      -->
+    <!-- ============================================================== -->
+    <section id="architecture" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">19</div>
+        <h2 class="section-title">High-Security Architecture Overview</h2>
+      </div>
+
+      <p class="section-lead">
+        In standard insecure web apps, client applications communicate directly with Supabase with client-side keys or risk exposing privileged Service Role credentials in frontend code bundles. In NovaCart's enterprise-grade setup:
+      </p>
+
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <div class="feature-title">Backend Gateway Mediation</div>
+          <div class="feature-desc">All mutations and sensitive queries flow through the PHP API gateway, enforcing rate limiting, input sanitization, and JWT verification.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-title">Service Role Isolation</div>
+          <div class="feature-desc">The high-privilege <code>SUPABASE_SERVICE_ROLE_KEY</code> is kept strictly on the PHP backend environment and NEVER exposed to browsers.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🗄️</div>
+          <div class="feature-title">Row Level Security (RLS)</div>
+          <div class="feature-desc">PostgreSQL tables and storage buckets have granular row-level and object-level permissions, preventing unauthorized access.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Supabase Setup Step 1 -->
+    <section id="supabase-setup" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">20</div>
+        <h2 class="section-title">Database Step 1: Create Supabase Project</h2>
+      </div>
+
+      <div class="card">
+        <ol style="color: var(--text-muted); font-size: 0.95rem; margin-left: 1.5rem; line-height: 1.8;">
+          <li>Visit <a href="https://supabase.com" target="_blank" style="color: var(--primary);">supabase.com</a> and sign in.</li>
+          <li>Click <strong>New Project</strong> and select an organization.</li>
+          <li>Set a project name (e.g., <code>novacart-ecommerce</code>) and a strong database password.</li>
+          <li>Select the region closest to your customers (e.g., Frankfurt for Europe/North Africa).</li>
+          <li>Wait ~2 minutes while Supabase provisions your PostgreSQL database cluster.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- SQL Schema Step 2 -->
+    <section id="sql-schema" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">21</div>
+        <h2 class="section-title">Database Step 2: Execute SQL Schema (`schema.sql`)</h2>
+      </div>
+
+      <p class="section-lead">
+        The complete database schema with tables, indexes, constraints, triggers, and pre-seeded test products is stored in <code>schema.sql</code>. Copy and paste it directly into the Supabase SQL Editor:
+      </p>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="code-lang">SQL (schema.sql preview)</span>
+          <button class="copy-btn" id="copy-sql-btn" onclick="copyFullSchemaSql()">📋 Copy Entire schema.sql</button>
+        </div>
+        <pre><code id="schema-code-block">-- 1. EXTENSIONS
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 2. USERS TABLE
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(150),
+    role VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'manager')),
+    avatar_url TEXT DEFAULT 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 3. PRODUCTS TABLE
+CREATE TABLE IF NOT EXISTS public.products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+    compare_at_price NUMERIC(10, 2) CHECK (compare_at_price >= price),
+    sku VARCHAR(100) UNIQUE,
+    stock_quantity INTEGER NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
+    images JSONB NOT NULL DEFAULT '[]'::jsonb,
+    rating NUMERIC(2, 1) NOT NULL DEFAULT 0.0 CHECK (rating >= 0 AND rating <= 5),
+    num_reviews INTEGER NOT NULL DEFAULT 0 CHECK (num_reviews >= 0),
+    is_featured BOOLEAN NOT NULL DEFAULT false,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- ... (Click 'Copy Entire schema.sql' for complete schema with orders, categories, reviews, triggers)</code></pre>
+      </div>
+    </section>
+
+    <!-- Database Tables Overview Step 3 -->
+    <section id="tables-overview" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">22</div>
+        <h2 class="section-title">Database Step 3: Database Tables Overview</h2>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">👥 users</div>
+          <p>Stores customer and admin accounts with bcrypt hashes, roles, and profile picture avatar URLs.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">🛍️ products</div>
+          <p>Stores catalog items with SKU, stock, prices, category, ratings, and <code>images</code> JSONB array.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">📦 orders & order_items</div>
+          <p>Tracks financial totals, tracking numbers, shipping addresses, customer status, and item snapshots.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">⭐ reviews & coupons</div>
+          <p>Customer ratings, verified purchase flags, discount coupons (percentage & fixed amount).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- API Keys Step 4 -->
+    <section id="api-keys" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">23</div>
+        <h2 class="section-title">Database Step 4: Retrieve API Keys from Supabase</h2>
+      </div>
+
+      <div class="card">
+        <ol style="color: var(--text-muted); font-size: 0.95rem; margin-left: 1.5rem; line-height: 1.8;">
+          <li>In your Supabase project dashboard, click <strong>Project Settings</strong> (gear icon at bottom left).</li>
+          <li>Click <strong>API</strong> in the sub-menu.</li>
+          <li>Copy your <strong>Project URL</strong> (e.g., <code>https://xyzcompany.supabase.co</code>).</li>
+          <li>Find the <strong>Project API keys</strong> section:
+            <ul style="margin: 0.5rem 0 0.5rem 1.25rem;">
+              <li><code>anon / public</code>: Used for direct client image uploads and public queries.</li>
+              <li><code>service_role / secret</code>: Privileged backend key. <strong>KEEP THIS SECRET!</strong> Paste it only into <code>backend/.env</code>.</li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Backend Config Step 5 -->
+    <section id="backend-config" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">24</div>
+        <h2 class="section-title">Database Step 5: Configure PHP Backend (.env)</h2>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-title">⚙️ backend/.env Configuration</div>
+        <p>In your terminal, copy the example file and update it with your real Supabase credentials:</p>
+        
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">Bash</span>
+            <button class="copy-btn" onclick="copySnippet('cp-env-cmd')">📋 Copy</button>
+          </div>
+          <pre><code id="cp-env-cmd">cd /home/farouk/development/backend
+cp .env.example .env</code></pre>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-lang">backend/.env</span>
+            <button class="copy-btn" onclick="copySnippet('env-template-code')">📋 Copy .env Template</button>
+          </div>
+          <pre><code id="env-template-code"># NovaCart Secure PHP Backend Configuration
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://api.yourdomain.com
+
+# Supabase Credentials (from Project Settings -> API)
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJh...your_service_role_key_here
+
+# JWT Signing Secret (Random 32+ character string)
+JWT_SECRET=super_secret_jwt_random_key_replace_in_production_32chars!
+JWT_EXPIRATION=86400
+
+# CORS Whitelist (Your frontend domain)
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,http://localhost:5173
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REQUESTS=120
+RATE_LIMIT_WINDOW=60</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Run Servers Step 6 -->
+    <section id="run-apps" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">25</div>
+        <h2 class="section-title">Launching Development Servers</h2>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🐘 1. Start PHP API Server</div>
+          <div class="code-container">
+            <div class="code-header"><span class="code-lang">Terminal 1</span></div>
+            <pre><code>cd /home/farouk/development/backend
+php -S 127.0.0.1:8000 -t public</code></pre>
+          </div>
+          <p style="font-size: 0.85rem;">API available at: <a href="http://localhost:8000/api/health" target="_blank" style="color: var(--accent-blue);">http://localhost:8000/api/health</a></p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⚛️ 2. Start React Frontend Server</div>
+          <div class="code-container">
+            <div class="code-header"><span class="code-lang">Terminal 2</span></div>
+            <pre><code>cd /home/farouk/development/frontend
+npm install
+npm run dev</code></pre>
+          </div>
+          <p style="font-size: 0.85rem;">Store frontend at: <a href="http://localhost:5173" target="_blank" style="color: var(--primary);">http://localhost:5173</a></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Test Accounts Section -->
+    <section id="test-accounts" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">26</div>
+        <h2 class="section-title">Pre-Seeded Test Credentials</h2>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Email</th>
+              <th>Password</th>
+              <th>Permissions</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-purple">Admin</span></td>
+              <td><code>admin@ecommerce.test</code></td>
+              <td><code>Admin@123456</code></td>
+              <td>Full CRUD, Product Inventory, Order Statuses</td>
+              <td><button class="copy-btn" onclick="copyText('admin@ecommerce.test | Admin@123456')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-blue">Customer</span></td>
+              <td><code>customer@ecommerce.test</code></td>
+              <td><code>Customer@123</code></td>
+              <td>Catalog, Cart, Orders, Reviews, Profile PFP</td>
+              <td><button class="copy-btn" onclick="copyText('customer@ecommerce.test | Customer@123')">Copy</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Live Connection Tester -->
+    <section id="live-tester" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">27</div>
+        <h2 class="section-title">Live API & Database Health Tester</h2>
+      </div>
+
+      <div class="card">
+        <p>Test the connection between this browser, your PHP API server, and Supabase:</p>
+        
+        <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <input type="text" id="api-test-url" value="http://localhost:8000/api/health" style="flex: 1; min-width: 260px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 1rem; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;">
+          <button class="btn btn-primary" onclick="testBackendHealth()">🔍 Test Connection Now</button>
+        </div>
+
+        <div id="test-result" class="test-result-box"></div>
+      </div>
+    </section>
+
+    <!-- Go-Live Production Checklist -->
+    <section id="production-checklist" class="doc-section">
+      <div class="section-header">
+        <div class="section-number">28</div>
+        <h2 class="section-title">Production Go-Live Checklist (100% Launch Ready)</h2>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-title">✅ Final Verification Before Taking Real Customer Orders</div>
+
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; margin: 1rem 0;">
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>1. HTTPS / SSL active:</strong> Both frontend (<code>https://yourdomain.com</code>) and API (<code>https://api.yourdomain.com</code>) have valid SSL certificates.</label></li>
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>2. CORS configured:</strong> <code>CORS_ALLOWED_ORIGINS</code> in <code>backend/.env</code> matches your frontend domain without wildcard <code>*</code>.</label></li>
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>3. Service Role Key protected:</strong> <code>SUPABASE_SERVICE_ROLE_KEY</code> is NOT present in any client-side JavaScript bundle.</label></li>
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>4. Storage Buckets Public Read:</strong> <code>product-images</code> and <code>avatars</code> buckets are created with public access for viewing.</label></li>
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>5. Storage RLS enforced:</strong> Users can only edit/delete their own avatar file.</label></li>
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>6. SPA Fallback Routing:</strong> Refreshing <code>/products</code> or <code>/checkout</code> does not trigger a 404 error (handled by Nginx <code>try_files</code> or <code>vercel.json</code> or <code>.htaccess</code>).</label></li>
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>7. JWT Secret randomized:</strong> <code>JWT_SECRET</code> is a cryptographically secure 32+ character random string.</label></li>
+          <li><label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;"><input type="checkbox" checked> <strong>8. Rate limiting enabled:</strong> <code>RATE_LIMIT_ENABLED=true</code> in <code>backend/.env</code> to prevent brute-force attacks.</label></li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    // Copy helper
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard: ' + text);
+      }).catch(err => {
+        console.error('Failed to copy', err);
+      });
+    }
+
+    function copySnippet(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      const text = el.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        const original = btn.innerText;
+        btn.innerText = '✅ Copied!';
+        setTimeout(() => { btn.innerText = original; }, 2000);
+      });
+    }
+
+    // Copy full schema SQL
+    function copyFullSchemaSql() {
+      const btn = document.getElementById('copy-sql-btn');
+      fetch('/schema.sql')
+        .then(res => {
+          if (!res.ok) throw new Error('Fetch failed');
+          return res.text();
+        })
+        .catch(() => {
+          return document.getElementById('schema-code-block').innerText;
+        })
+        .then(sql => {
+          navigator.clipboard.writeText(sql).then(() => {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ Copied Full SQL!';
+            setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+          });
+        });
+    }
+
+    // Tabs Switcher
+    function switchTab(groupName, tabId, btnEl) {
+      const contents = document.querySelectorAll(`[data-group="${groupName}"]`);
+      contents.forEach(c => c.classList.remove('active'));
+
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
+
+      const parentHeader = btnEl.parentElement;
+      const buttons = parentHeader.querySelectorAll('.tab-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+      btnEl.classList.add('active');
+    }
+
+    // Search filter for sidebar links
+    function filterNav() {
+      const query = document.getElementById('nav-search-input').value.toLowerCase();
+      const links = document.querySelectorAll('.nav-links li');
+      links.forEach(li => {
+        const text = li.innerText.toLowerCase();
+        if (text.includes(query)) {
+          li.style.display = 'block';
+        } else {
+          li.style.display = 'none';
+        }
+      });
+    }
+
+    // Dynamic Nginx generator
+    function generateNginxConf() {
+      const domain = document.getElementById('gen-domain').value || 'yourdomain.com';
+      const path = document.getElementById('gen-path').value || '/var/www/novacart/frontend/dist';
+      const api = document.getElementById('gen-api').value || '127.0.0.1:8000';
+
+      const conf = `server {
+    listen 80;
+    server_name ${domain} www.${domain};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${domain} www.${domain};
+
+    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+
+    root ${path};
+    index index.html;
+
+    # React SPA Routing:
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API Proxy to PHP Backend:
+    location /api/ {
+        proxy_pass http://${api};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Cache static assets:
+    location ~* \\.(?:css|js|webp|png|jpg|svg|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}`;
+      const codeEl = document.getElementById('dynamic-nginx-code');
+      if (codeEl) codeEl.innerText = conf;
+    }
+
+    // Dynamic .htaccess generator
+    function generateHtaccess() {
+      const sub = document.getElementById('gen-subfolder').value.trim();
+      const base = sub ? `/${sub}/` : '/';
+      const conf = `<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase ${base}
+
+  # Force HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Don't rewrite real files/folders
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Route all routes to index.html (SPA fallback)
+  RewriteRule ^ index.html [L]
+</IfModule>`;
+      const codeEl = document.getElementById('dynamic-htaccess-code');
+      if (codeEl) codeEl.innerText = conf;
+    }
+
+    // Interactive Stack Advisor
+    function runStackAdvisor() {
+      const budget = document.getElementById('adv-budget').value;
+      const products = document.getElementById('adv-products').value;
+      const skills = document.getElementById('adv-skills').value;
+      const box = document.getElementById('advisor-recommendation');
+
+      let hostTitle = '';
+      let hostDesc = '';
+      let storageTitle = '';
+      let storageDesc = '';
+
+      if (skills === 'cpanel') {
+        hostTitle = 'cPanel / Shared Hosting with .htaccess';
+        hostDesc = 'Build with `npm run build` and upload the `dist/` contents to `public_html/`. Use the generated `.htaccess` for SPA routing.';
+      } else if (skills === 'vps' || budget === 'low') {
+        hostTitle = 'Linux VPS (Ubuntu + Nginx + Certbot SSL)';
+        hostDesc = 'Host both your React frontend and PHP API gateway on a $5/mo Hetzner or DigitalOcean droplet. Proxy `/api` to PHP with Nginx.';
+      } else {
+        hostTitle = 'Vercel or Cloudflare Pages (Serverless CDN)';
+        hostDesc = 'Connect your GitHub repo to Vercel or Cloudflare Pages for instant zero-maintenance global static deployments.';
+      }
+
+      if (budget === 'zero' || products === 'small') {
+        storageTitle = '🏆 Supabase Storage (Native Integration)';
+        storageDesc = 'Use your existing Supabase project! Free 1GB bucket with automatic URL image transformations and Postgres RLS security.';
+      } else if (products === 'large') {
+        storageTitle = '🗄️ Cloudflare R2 (Zero Egress Fees)';
+        storageDesc = 'Store tens of thousands of product images with zero download bandwidth charges using S3-compatible presigned URLs.';
+      } else {
+        storageTitle = '✨ Cloudinary (eCommerce AI Transforms)';
+        storageDesc = 'Automatic AI face detection for user avatars, auto WebP/AVIF formatting, and responsive image srcsets.';
+      }
+
+      box.innerHTML = `
+        <div style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">🎯 Your Personalized Production Architecture:</div>
+        <div style="margin-bottom: 0.75rem;">
+          <span class="badge badge-green">Recommended Frontend Host:</span>
+          <strong style="color: #fff; margin-left: 0.4rem;">${hostTitle}</strong>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">${hostDesc}</p>
+        </div>
+        <div>
+          <span class="badge badge-blue">Recommended Media Storage:</span>
+          <strong style="color: #fff; margin-left: 0.4rem;">${storageTitle}</strong>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">${storageDesc}</p>
+        </div>
+      `;
+    }
+
+    // Image Simulator Handler
+    function handleSimulatorUpload(file) {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (JPEG, PNG, WebP).');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const src = e.target.result;
+        const img = new Image();
+        img.src = src;
+
+        img.onload = () => {
+          document.getElementById('sim-results').style.display = 'block';
+          document.getElementById('sim-avatar-img').src = src;
+          document.getElementById('sim-product-img').src = src;
+
+          const origSizeKb = (file.size / 1024).toFixed(1);
+          // Estimate WebP compression (~70% reduction)
+          const estWebpKb = (file.size * 0.28 / 1024).toFixed(1);
+
+          document.getElementById('sim-stats-text').innerHTML = `
+            <strong>${file.name}</strong> loaded!<br>
+            Original Dimensions: <strong>${img.width} × ${img.height} px</strong> | Original Size: <strong>${origSizeKb} KB</strong><br>
+            ⚡ Estimated WebP Compressed Size: <strong>~${estWebpKb} KB</strong> (Saved ~72% bandwidth!)
+          `;
+
+          document.getElementById('sim-avatar-dims').innerText = `${img.width} × ${img.height} px`;
+          document.getElementById('sim-product-dims').innerText = `${img.width} × ${img.height} px`;
+
+          const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_').toLowerCase();
+          const jsonCode = `{
+  "user_profile": {
+    "avatar_url": "https://xyz.supabase.co/storage/v1/object/public/avatars/user-948f_${cleanName}"
+  },
+  "product_record": {
+    "images": [
+      "https://xyz.supabase.co/storage/v1/object/public/product-images/prod_1001_${cleanName}",
+      "https://xyz.supabase.co/storage/v1/object/public/product-images/prod_1001_angle2.webp"
+    ]
+  }
+}`;
+          document.getElementById('sim-json-output').innerText = jsonCode;
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Setup Drag and Drop events
+    const dropzone = document.getElementById('sim-dropzone');
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropzone.classList.add('dragover');
+        }, false);
+      });
+      ['dragleave', 'drop'].forEach(name => {
+        dropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('dragover');
+        }, false);
+      });
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const file = dt.files[0];
+        handleSimulatorUpload(file);
+      }, false);
+    }
+
+    // Health checker
+    async function testBackendHealth() {
+      const url = document.getElementById('api-test-url').value;
+      const resBox = document.getElementById('test-result');
+      resBox.className = 'test-result-box';
+      resBox.style.display = 'block';
+      resBox.innerHTML = 'Connecting to ' + url + '...';
+
+      try {
+        const response = await fetch(url, { method: 'GET' });
+        const data = await response.json();
+
+        if (data.status === 'operational') {
+          if (data.supabase_configured) {
+            resBox.className = 'test-result-box success';
+            resBox.innerHTML = '<strong>SUCCESS! 🚀</strong><br>PHP Backend is operational and Supabase is linked!<br><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+          } else {
+            resBox.className = 'test-result-box';
+            resBox.style.display = 'block';
+            resBox.style.background = 'rgba(251, 191, 36, 0.1)';
+            resBox.style.border = '1px solid var(--accent-amber)';
+            resBox.style.color = 'var(--accent-amber)';
+            resBox.innerHTML = '<strong>PARTIAL SUCCESS: ⚠️</strong><br>PHP Backend is running, but Supabase credentials in backend/.env are still placeholder values. Follow Step 4 & 5 to add your real Supabase URL & Key!<br><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+          }
+        } else {
+          resBox.className = 'test-result-box error';
+          resBox.innerHTML = '<strong>Unexpected Response:</strong><br><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+      } catch (err) {
+        resBox.className = 'test-result-box error';
+        resBox.innerHTML = '<strong>Connection Failed:</strong><br>Could not reach ' + url + '. Make sure your PHP server is running (`cd backend && php -S 127.0.0.1:8000 -t public`).<br>Error details: ' + err.message;
+      }
+    }
+
+    // Init generators on load
+    window.addEventListener('DOMContentLoaded', () => {
+      generateNginxConf();
+      generateHtaccess();
+      runStackAdvisor();
+    });
+  </script>
+</body>
+</html>

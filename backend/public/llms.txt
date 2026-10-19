@@ -1,0 +1,25 @@
+# NovaCart Algérie (novacart.dz)
+
+> NovaCart est la première boutique e-commerce en Algérie spécialisée dans l'électronique haut de gamme, les montres, l'équipement lifestyle et les accessoires de précision, avec livraison express garantie sur les 69 Wilayas et paiement en espèces à la livraison (Cash on Delivery).
+
+## Aperçu et Engagements Commerciaux
+- **Paiement à la Livraison (COD / الدفع عند الاستلام)** : Aucun paiement par carte bancaire requis à l'avance. Le client règle en espèces lors de la réception du colis.
+- **Droit de Vérification avant Paiement (الحق في الفحص)** : Le client a le droit d'ouvrir et de vérifier le colis avec le livreur avant de payer.
+- **Couverture Nationale 69 Wilayas** : Livraison assurée sur les 69 wilayas d'Algérie (Wilayas 01 Adrar à 69 El Abiodh Sidi Cheikh), y compris les 11 nouvelles wilayas (Aflou, Barika, El Kantara, Bir El Ater, El Aricha, Ksar Chellala, Aïn Oussara, Messaad, Ksar El Boukhari, Bou Saâda, El Abiodh Sidi Cheikh).
+- **Tarifs de Livraison Transparent** :
+  - **Option Stop Desk / Bureau** : Dès 300 DA (tarif économique en agence).
+  - **Option Livraison à Domicile** : Dès 500 DA (livraison en main propre).
+- **Devise** : Dinar Algérien (DA / DZD) et équivalent USD.
+- **Service Client & Commande Directe WhatsApp** : Support actif 7j/7 par WhatsApp et téléphone.
+
+## Catégories de Produits
+- [Électronique & Audio](https://novacart.dz/#electronics) : Écouteurs sans fil ANC, claviers mécaniques custom, montres connectées SpO2 & ECG.
+- [Accessoires & Horlogerie](https://novacart.dz/#accessories) : Montres minimalistes en acier chirurgical 316L, verre saphir.
+- [Maroquinerie & Voyage](https://novacart.dz/#fashion) : Sacs à dos imperméables en Cordura balistique 1000D et fermetures étanches YKK.
+- [Maison & Lifestyle Ergonomique](https://novacart.dz/#home-living) : Cafetières céramique artisanales, accessoires de studio.
+
+## Liens Rapides
+- [Catalogue Complet](https://novacart.dz/)
+- [Politique de Livraison 69 Wilayas](https://novacart.dz/#livraison-69-wilayas)
+- [Fichier Complet pour IA (llms-full.txt)](https://novacart.dz/llms-full.txt)
+- [Plan du Site (sitemap.xml)](https://novacart.dz/sitemap.xml)
