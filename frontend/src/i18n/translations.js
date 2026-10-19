@@ -263,6 +263,7 @@ export const translations = {
     auth_registering: 'جاري إنشاء الحساب...',
     auth_trusted_domains: 'المزودات المقبولة: Gmail, Outlook, Yahoo, Hotmail, iCloud, Proton',
     auth_security_note: 'حماية متقدمة: كلمة المرور تتطلب 8 أحرف على الأقل مع أحرف وأرقام.',
+    auth_quick_demo: 'حسابات تجريبية سريعة:',
 
     // Footer
     footer_about_title: 'عن المتجر',
@@ -536,6 +537,7 @@ export const translations = {
     auth_registering: 'Creating account...',
     auth_trusted_domains: 'Allowed providers: Gmail, Outlook, Yahoo, Hotmail, iCloud, Proton',
     auth_security_note: 'High security: Password requires at least 8 chars with uppercase, lowercase, and numbers.',
+    auth_quick_demo: 'Quick Demo Logins:',
 
     // Footer
     footer_about_title: 'About NovaCart',
@@ -809,6 +811,7 @@ export const translations = {
     auth_registering: 'Création du compte...',
     auth_trusted_domains: 'Fournisseurs acceptés : Gmail, Outlook, Yahoo, Hotmail, iCloud, Proton',
     auth_security_note: 'Sécurité avancée : Le mot de passe requiert au moins 8 caractères avec majuscules, minuscules et chiffres.',
+    auth_quick_demo: 'Comptes Démo Rapides :',
 
     // Footer
     footer_about_title: 'À Propos de NovaCart',

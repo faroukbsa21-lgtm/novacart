@@ -38,6 +38,22 @@ export default function AuthModal({ isOpen, onClose }) {
     }
   };
 
+  const handleQuickLogin = async (demoEmail, demoPassword) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    setError('');
+    setLoading(true);
+
+    try {
+      await login(demoEmail, demoPassword);
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Invalid email or password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -175,6 +191,42 @@ export default function AuthModal({ isOpen, onClose }) {
                 <KeyRound size={15} />
                 <span>{loading ? t('auth_authenticating') : t('auth_btn_login')}</span>
               </button>
+
+              {/* Quick Demo 1-Click Accounts */}
+              <div className="pt-3 border-t border-slate-800">
+                <p className="text-[11px] font-semibold text-slate-400 mb-2 flex items-center justify-between">
+                  <span>💡 {t('auth_quick_demo')}</span>
+                  <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono font-bold">1-Click</span>
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('admin@ecommerce.test', 'Admin@123456')}
+                    disabled={loading}
+                    className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-emerald-500/50 text-left transition-all group disabled:opacity-50"
+                  >
+                    <div className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                      <Shield size={12} />
+                      <span>Admin</span>
+                    </div>
+                    <div className="text-[10px] text-slate-300 font-mono truncate">admin@ecommerce.test</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">Admin@123456</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('customer@ecommerce.test', 'Customer@123')}
+                    disabled={loading}
+                    className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 hover:border-sky-500/50 text-left transition-all group disabled:opacity-50"
+                  >
+                    <div className="text-[11px] font-bold text-sky-400 flex items-center gap-1">
+                      <User size={12} />
+                      <span>Customer</span>
+                    </div>
+                    <div className="text-[10px] text-slate-300 font-mono truncate">customer@ecommerce.test</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">Customer@123</div>
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
         ) : (

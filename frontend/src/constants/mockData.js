@@ -186,3 +186,27 @@ export const MOCK_REVIEWS = [
     created_at: '2026-10-16T14:30:00Z'
   }
 ];
+
+export const MOCK_USERS = [
+  {
+    id: 'a0000000-0000-0000-0000-000000000001',
+    email: 'admin@ecommerce.test',
+    password: 'Admin@123456',
+    full_name: 'System Administrator',
+    role: 'admin',
+    preferred_language: 'fr',
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
+    token: 'mock_jwt_admin_novacart'
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000001',
+    email: 'customer@ecommerce.test',
+    password: 'Customer@123',
+    full_name: 'Sarah Jenkins',
+    role: 'customer',
+    preferred_language: 'ar',
+    avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+    token: 'mock_jwt_customer_novacart'
+  }
+];
+
