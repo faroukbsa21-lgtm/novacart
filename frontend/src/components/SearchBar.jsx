@@ -14,6 +14,7 @@ import {
 import { api } from '../services/api';
 import { formatDZD } from '../utils/formatters';
 import { useLanguage } from '../context/LanguageContext';
+import { getProductMainImage } from '../utils/images';
 
 const RECENT_SEARCHES_KEY = 'novacart_recent_searches';
 const POPULAR_SEARCHES = [
@@ -390,9 +391,7 @@ export default function SearchBar({
 
               <div className="divide-y divide-slate-800/50 max-h-80 overflow-y-auto">
                 {previewProducts.map((product, idx) => {
-                  const img = Array.isArray(product.images) && product.images.length > 0
-                    ? product.images[0]
-                    : (typeof product.images === 'string' ? JSON.parse(product.images || '[]')[0] : '');
+                  const img = getProductMainImage(product.images);
                   const isHighlighted = selectedIndex === idx;
 
                   return (

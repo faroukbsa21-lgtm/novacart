@@ -82,13 +82,23 @@ class AdminController
             Security::errorResponse('Title and a valid price (> 0) are required', 422);
         }
 
+        // Compare at price in PostgreSQL must be >= price or null
+        if ($compareAtPrice !== null && $compareAtPrice <= $price) {
+            $compareAtPrice = null;
+        }
+
         // Generate URL-friendly slug
         $baseSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title), '-'));
         $slug = $baseSlug . '-' . substr(bin2hex(random_bytes(2)), 0, 4);
 
+        $sku = !empty($body['sku']) 
+            ? Security::sanitizeString($body['sku']) 
+            : 'SKU-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+
         $productData = [
             'title' => $title,
             'slug' => $slug,
+            'sku' => $sku,
             'description' => $description,
             'price' => $price,
             'compare_at_price' => $compareAtPrice,
@@ -128,7 +138,7 @@ class AdminController
         }
 
         $body = Security::getJsonInput();
-        $allowed = ['title', 'description', 'price', 'compare_at_price', 'stock_quantity', 'category_id', 'images', 'is_featured', 'is_active'];
+        $allowed = ['title', 'description', 'price', 'compare_at_price', 'stock_quantity', 'category_id', 'images', 'is_featured', 'is_active', 'sku'];
         $updateData = [];
 
         foreach ($allowed as $field) {
@@ -141,9 +151,21 @@ class AdminController
                     $updateData[$field] = (bool)$body[$field];
                 } elseif ($field === 'images') {
                     $updateData[$field] = is_array($body[$field]) ? $body[$field] : [];
+                } elseif ($field === 'category_id') {
+                    $catId = Security::sanitizeString($body[$field]);
+                    if (Security::isValidUuid($catId)) {
+                        $updateData[$field] = $catId;
+                    }
                 } else {
                     $updateData[$field] = Security::sanitizeString($body[$field]);
                 }
+            }
+        }
+
+        // Validate compare_at_price against price if both are provided or adjusted
+        if (isset($updateData['compare_at_price']) && isset($updateData['price'])) {
+            if ($updateData['compare_at_price'] !== null && $updateData['compare_at_price'] <= $updateData['price']) {
+                $updateData['compare_at_price'] = null;
             }
         }
 

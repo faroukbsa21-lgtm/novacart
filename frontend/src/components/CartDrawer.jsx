@@ -15,6 +15,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatDZD } from '../utils/formatters';
+import { getProductMainImage } from '../utils/images';
 
 export default function CartDrawer({ onCheckout }) {
   const { isAdmin } = useAuth();
@@ -95,9 +96,7 @@ export default function CartDrawer({ onCheckout }) {
               </div>
             ) : (
               items.map((item) => {
-                const img = Array.isArray(item.product.images) && item.product.images.length > 0
-                  ? item.product.images[0]
-                  : (typeof item.product.images === 'string' ? JSON.parse(item.product.images || '[]')[0] : '');
+                const img = getProductMainImage(item.product.images);
 
                 const maxStock = typeof item.product?.stock_quantity === 'number'
                   ? item.product.stock_quantity

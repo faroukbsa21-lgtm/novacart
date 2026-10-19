@@ -1,19 +1,18 @@
 import React from 'react';
-import { Star, ShoppingBag, Eye, Check, Settings } from 'lucide-react';
+import { Star, ShoppingBag, Eye, Check, Settings, Edit2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatDZD } from '../utils/formatters';
+import { getProductMainImage } from '../utils/images';
 
-export default function ProductCard({ product, onSelectProduct }) {
+export default function ProductCard({ product, onSelectProduct, onEditProduct }) {
   const { addToCart, items } = useCart();
   const { isAdmin } = useAuth();
   const { language, t, getCategoryName, isRTL } = useLanguage();
 
   const inCart = items.some(item => item.product.id === product.id);
-  const imageUrl = Array.isArray(product.images) && product.images.length > 0 
-    ? product.images[0] 
-    : (typeof product.images === 'string' ? JSON.parse(product.images || '[]')[0] : 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80');
+  const imageUrl = getProductMainImage(product.images);
 
   const price = parseFloat(product.price) || 0;
   const comparePrice = parseFloat(product.compare_at_price) || 0;
@@ -145,14 +144,20 @@ export default function ProductCard({ product, onSelectProduct }) {
           </div>
 
           {isAdmin ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); onSelectProduct(product); }}
-              className="p-2 rounded-xl bg-purple-600/20 text-purple-300 border border-purple-500/30 text-xs font-semibold hover:bg-purple-600/30 transition-all flex items-center gap-1"
-              title="Inspecter le produit"
-            >
-              <Settings size={14} />
-              <span className="hidden sm:inline text-[11px]">{t('card_manage')}</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onEditProduct) onEditProduct(product);
+                  else onSelectProduct(product);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-purple-500/20 transition-all active:scale-95"
+                title="Modifier ce produit (Prix, Stock, Titre)"
+              >
+                <Edit2 size={13} />
+                <span>Modifier</span>
+              </button>
+            </div>
           ) : isOutOfStock ? (
             <button
               disabled={true}

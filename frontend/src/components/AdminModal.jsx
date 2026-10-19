@@ -23,11 +23,19 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatDZD } from '../utils/formatters';
+import { getProductImages } from '../utils/images';
 
-export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
+export default function AdminModal({ 
+  isOpen, 
+  onClose, 
+  onProductUpdated,
+  initialTab = 'overview',
+  initialProductToEdit = null,
+  autoOpenCreate = false
+}) {
   const { user: currentAdmin } = useAuth();
   const { language, t, isRTL } = useLanguage();
-  const [tab, setTab] = useState('overview'); // 'overview' | 'products' | 'orders' | 'customers'
+  const [tab, setTab] = useState(initialTab || 'overview'); // 'overview' | 'products' | 'orders' | 'customers'
   const [stats, setStats] = useState({
     total_revenue: 0,
     total_orders: 0,
@@ -102,10 +110,37 @@ export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
     }
   }, []);
 
-  // Initial load and periodic Real-Time sync
+  // --- PRODUCT MANAGEMENT ---
+  const handleOpenEdit = useCallback((p) => {
+    if (!p) return;
+    setEditingProduct(p);
+    setShowAddProduct(false);
+    setEditTitle(p.title || '');
+    setEditCategory(p.category_id || p.category?.id || '11111111-1111-1111-1111-111111111111');
+    setEditPrice(p.price !== undefined ? String(p.price) : '');
+    setEditComparePrice(p.compare_at_price ? String(p.compare_at_price) : '');
+    setEditStock(p.stock_quantity !== undefined ? String(p.stock_quantity) : '0');
+    setEditDesc(p.description || '');
+    const imgs = getProductImages(p.images);
+    setEditImageUrl(imgs[0] || '');
+    setEditIsFeatured(!!p.is_featured);
+  }, []);
+
+  // Initial load, tab routing, and periodic Real-Time sync
   useEffect(() => {
     if (!isOpen) return;
     fetchAllAdminData();
+
+    if (initialTab) {
+      setTab(initialTab);
+    }
+    if (initialProductToEdit) {
+      setTab('products');
+      handleOpenEdit(initialProductToEdit);
+    } else if (autoOpenCreate) {
+      setTab('products');
+      setShowAddProduct(true);
+    }
 
     // Auto realtime refresh interval (every 12 seconds)
     const interval = setInterval(() => {
@@ -113,7 +148,7 @@ export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
     }, 12000);
 
     return () => clearInterval(interval);
-  }, [isOpen, fetchAllAdminData]);
+  }, [isOpen, initialTab, initialProductToEdit, autoOpenCreate, fetchAllAdminData, handleOpenEdit]);
 
   if (!isOpen) return null;
 
@@ -131,28 +166,20 @@ export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
     }
   };
 
-  // --- PRODUCT MANAGEMENT ---
-  const handleOpenEdit = (p) => {
-    setEditingProduct(p);
-    setEditTitle(p.title || '');
-    setEditCategory(p.category_id || p.category?.id || '11111111-1111-1111-1111-111111111111');
-    setEditPrice(p.price !== undefined ? String(p.price) : '');
-    setEditComparePrice(p.compare_at_price ? String(p.compare_at_price) : '');
-    setEditStock(p.stock_quantity !== undefined ? String(p.stock_quantity) : '0');
-    setEditDesc(p.description || '');
-    const imgs = Array.isArray(p.images) ? p.images : (typeof p.images === 'string' ? JSON.parse(p.images || '[]') : []);
-    setEditImageUrl(imgs[0] || '');
-    setEditIsFeatured(!!p.is_featured);
-  };
-
   const handleSaveProductEdit = async (e) => {
     e.preventDefault();
     if (!editingProduct) return;
 
+    const parsedPrice = parseFloat(editPrice) || 0;
+    if (parsedPrice <= 0) {
+      showNotification('Le prix doit être supérieur à 0 DZD', 'error');
+      return;
+    }
+
     const payload = {
       title: editTitle.trim(),
       category_id: editCategory,
-      price: parseFloat(editPrice) || 0,
+      price: parsedPrice,
       compare_at_price: editComparePrice ? parseFloat(editComparePrice) : null,
       stock_quantity: parseInt(editStock, 10) || 0,
       description: editDesc.trim(),
@@ -178,11 +205,17 @@ export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
 
   const handleCreateProduct = async (e) => {
     e.preventDefault();
+    const parsedPrice = parseFloat(newPrice) || 0;
+    if (parsedPrice <= 0) {
+      showNotification('Le prix doit être supérieur à 0 DZD', 'error');
+      return;
+    }
+
     const productPayload = {
       category_id: newCategory,
       title: newTitle.trim(),
       description: newDesc.trim(),
-      price: parseFloat(newPrice) || 0,
+      price: parsedPrice,
       compare_at_price: newComparePrice ? parseFloat(newComparePrice) : null,
       sku: newSku.trim() || 'SKU-' + Math.floor(Math.random() * 9000 + 1000),
       stock_quantity: parseInt(newStock, 10) || 10,
@@ -191,14 +224,13 @@ export default function AdminModal({ isOpen, onClose, onProductUpdated }) {
       is_active: true
     };
 
-    setShowAddProduct(false);
-
     try {
       const res = await api.createProduct(productPayload);
       const createdItem = res?.data || res?.product || productPayload;
       setProducts(prev => [createdItem, ...prev.filter(p => p.id !== createdItem.id)]);
       showNotification(`Produit "${productPayload.title}" ajouté avec succès !`);
-      
+      setShowAddProduct(false);
+
       // Reset form
       setNewTitle('');
       setNewPrice('');

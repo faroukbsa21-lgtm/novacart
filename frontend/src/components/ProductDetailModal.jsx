@@ -10,18 +10,44 @@ import {
   Plus, 
   Minus,
   MessageSquare,
-  Send
+  Send,
+  Edit2,
+  Trash2,
+  Save,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import { formatDZD } from '../utils/formatters';
+import { getProductImages } from '../utils/images';
 
-export default function ProductDetailModal({ product, onClose }) {
+export default function ProductDetailModal({ product: initialProduct, onClose, onProductUpdated }) {
   const { addToCart } = useCart();
   const { user, isAdmin } = useAuth();
   const { language, t, getCategoryName, isRTL } = useLanguage();
+
+  const [product, setProduct] = useState(initialProduct);
+
+  // Sync internal product state if initialProduct changes
+  useEffect(() => {
+    setProduct(initialProduct);
+  }, [initialProduct]);
+
+  // Admin inline edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editComparePrice, setEditComparePrice] = useState('');
+  const [editStock, setEditStock] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editIsFeatured, setEditIsFeatured] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   const stock = typeof product?.stock_quantity === 'number'
     ? product.stock_quantity
@@ -41,9 +67,7 @@ export default function ProductDetailModal({ product, onClose }) {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
 
-  const images = Array.isArray(product?.images) 
-    ? product.images 
-    : (typeof product?.images === 'string' ? JSON.parse(product?.images || '[]') : []);
+  const images = getProductImages(product?.images);
   
   const displayImages = images.length > 0 
     ? images 
@@ -52,6 +76,71 @@ export default function ProductDetailModal({ product, onClose }) {
   const price = parseFloat(product?.price) || 0;
   const comparePrice = parseFloat(product?.compare_at_price) || 0;
   const hasDiscount = comparePrice > price;
+
+  const showNotification = (msg, type = 'success') => {
+    setFeedback({ msg, type });
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleStartEdit = () => {
+    setEditTitle(product?.title || '');
+    setEditCategory(product?.category_id || product?.category?.id || '11111111-1111-1111-1111-111111111111');
+    setEditPrice(product?.price !== undefined ? String(product.price) : '');
+    setEditComparePrice(product?.compare_at_price ? String(product.compare_at_price) : '');
+    setEditStock(product?.stock_quantity !== undefined ? String(product.stock_quantity) : '0');
+    setEditDesc(product?.description || '');
+    setEditImageUrl(displayImages[0] || '');
+    setEditIsFeatured(!!product?.is_featured);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!product?.id) return;
+
+    const newPriceVal = parseFloat(editPrice) || 0;
+    if (newPriceVal <= 0) {
+      showNotification('Le prix doit être supérieur à 0 DZD', 'error');
+      return;
+    }
+
+    const payload = {
+      title: editTitle.trim(),
+      category_id: editCategory,
+      price: newPriceVal,
+      compare_at_price: editComparePrice ? parseFloat(editComparePrice) : null,
+      stock_quantity: parseInt(editStock, 10) || 0,
+      description: editDesc.trim(),
+      images: [editImageUrl.trim() || displayImages[0]],
+      is_featured: editIsFeatured
+    };
+
+    setSavingEdit(true);
+    try {
+      await api.updateProduct(product.id, payload);
+      setProduct(prev => ({ ...prev, ...payload }));
+      setIsEditing(false);
+      showNotification('Produit mis à jour avec succès !');
+      if (onProductUpdated) onProductUpdated();
+    } catch (err) {
+      showNotification(err.message || 'Erreur lors de la mise à jour', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!product?.id) return;
+    if (!window.confirm(`Voulez-vous vraiment supprimer "${product.title}" du catalogue ?`)) return;
+
+    try {
+      await api.deleteProduct(product.id);
+      if (onProductUpdated) onProductUpdated();
+      onClose();
+    } catch (err) {
+      showNotification(err.message || 'Erreur lors de la suppression', 'error');
+    }
+  };
 
   useEffect(() => {
     if (!product?.id) return;
@@ -130,14 +219,38 @@ export default function ProductDetailModal({ product, onClose }) {
         className="relative bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} z-20 p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700`}
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
+        {/* Close button & Admin Edit toggle */}
+        <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} z-20 flex items-center gap-2`}>
+          {isAdmin && !isEditing && (
+            <button
+              onClick={handleStartEdit}
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/25 transition-all"
+              title="Modifier ce produit"
+            >
+              <Edit2 size={13} />
+              <span>Modifier</span>
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Global Feedback Banner */}
+        {feedback && (
+          <div className={`mx-6 mt-4 p-3 rounded-xl text-xs font-semibold flex items-center gap-2 animate-fade-in ${
+            feedback.type === 'error'
+              ? 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
+              : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+          }`}>
+            {feedback.type === 'error' ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
+            <span>{feedback.msg}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
           
@@ -193,148 +306,315 @@ export default function ProductDetailModal({ product, onClose }) {
             </div>
           </div>
 
-          {/* Right: Info & Actions */}
+          {/* Right: Info & Actions OR Edit Form */}
           <div className="flex flex-col justify-between">
-            <div>
-              {/* Category & SKU */}
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span className="uppercase tracking-wider font-semibold text-emerald-400">
-                  {getCategoryName(product.category_name || product.category?.name || product.category) || t('card_catalog')}
-                </span>
-                <span className="font-mono text-xs bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-                  SKU: {product.sku}
-                </span>
-              </div>
-
-              {/* Title */}
-              <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 tracking-tight">
-                {product.title}
-              </h2>
-
-              {/* Rating */}
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex text-amber-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      size={16} 
-                      fill={i < Math.round(product.rating || 5) ? 'currentColor' : 'none'} 
-                    />
-                  ))}
+            {isEditing ? (
+              <form onSubmit={handleSaveEdit} className="space-y-3.5 animate-fade-in bg-slate-800/40 p-4 rounded-2xl border border-purple-500/30">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-700">
+                  <h3 className="text-sm font-bold text-purple-300 flex items-center gap-1.5">
+                    <Edit2 size={16} />
+                    <span>Modifier le Produit (Mode Admin)</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="text-xs text-slate-400 hover:text-white"
+                  >
+                    Annuler
+                  </button>
                 </div>
-                <span className="text-sm font-bold text-slate-200">{Number(product.rating || 5).toFixed(1)}</span>
-                <span className="text-xs text-slate-400">({product.num_reviews || 0} {t('card_reviews')})</span>
-              </div>
 
-              {/* Price strictly in Algerian Dinars (DZD) */}
-              <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-3 mb-6 p-4 rounded-2xl bg-slate-800/50 border border-slate-800">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-emerald-400">
-                    {formatDZD(price, language)}
+                <div>
+                  <label className="block text-[11px] text-slate-300 mb-1">Titre du Produit *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-300 mb-1">Prix (DZD) *</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="1"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-300 mb-1">Prix Promo (DZD)</label>
+                    <input
+                      type="number"
+                      step="1"
+                      placeholder="Optionnel"
+                      value={editComparePrice}
+                      onChange={(e) => setEditComparePrice(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-300 mb-1">Stock Disponible</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={editStock}
+                      onChange={(e) => setEditStock(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-300 mb-1">Catégorie</label>
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
+                    >
+                      <option value="11111111-1111-1111-1111-111111111111">{t('cat_electronics')}</option>
+                      <option value="22222222-2222-2222-2222-222222222222">{t('cat_fashion')}</option>
+                      <option value="33333333-3333-3333-3333-333333333333">{t('cat_home_living')}</option>
+                      <option value="44444444-4444-4444-4444-444444444444">{t('cat_accessories')}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-300 mb-1">URL de l'Image</label>
+                  <input
+                    type="url"
+                    value={editImageUrl}
+                    onChange={(e) => setEditImageUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-300 mb-1">Description</label>
+                  <textarea
+                    rows={3}
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsFeatured}
+                      onChange={(e) => setEditIsFeatured(e.target.checked)}
+                      className="rounded border-slate-700 text-purple-600 focus:ring-purple-400"
+                    />
+                    <span>Mettre en avant (Featured)</span>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-750">
+                  <button
+                    type="button"
+                    onClick={handleDeleteProduct}
+                    className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    <span>Supprimer</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingEdit}
+                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-500/20 transition-all active:scale-95"
+                    >
+                      <Save size={14} />
+                      <span>{savingEdit ? 'Enregistrement...' : 'Enregistrer'}</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <div>
+                {/* Category & SKU */}
+                <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                  <span className="uppercase tracking-wider font-semibold text-emerald-400">
+                    {getCategoryName(product.category_name || product.category?.name || product.category) || t('card_catalog')}
                   </span>
-                  {hasDiscount && (
-                    <span className="text-sm sm:text-base text-slate-400 line-through">
-                      {formatDZD(comparePrice, language)}
+                  <span className="font-mono text-xs bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                    SKU: {product.sku}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h2 className="text-2xl sm:text-3xl font-black text-white mb-3 tracking-tight">
+                  {product.title}
+                </h2>
+
+                {/* Rating */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex text-amber-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        size={16} 
+                        fill={i < Math.round(product.rating || 5) ? 'currentColor' : 'none'} 
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-bold text-slate-200">{Number(product.rating || 5).toFixed(1)}</span>
+                  <span className="text-xs text-slate-400">({product.num_reviews || 0} {t('card_reviews')})</span>
+                </div>
+
+                {/* Price strictly in Algerian Dinars (DZD) */}
+                <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-3 mb-6 p-4 rounded-2xl bg-slate-800/50 border border-slate-800">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl sm:text-3xl font-black text-emerald-400">
+                      {formatDZD(price, language)}
+                    </span>
+                    {hasDiscount && (
+                      <span className="text-sm sm:text-base text-slate-400 line-through">
+                        {formatDZD(comparePrice, language)}
+                      </span>
+                    )}
+                  </div>
+                  {isOutOfStock ? (
+                    <span className={`${isRTL ? 'sm:mr-auto' : 'sm:ml-auto'} text-xs font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30 inline-flex items-center gap-1.5 self-start`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                      {t('modal_out_of_stock')}
+                    </span>
+                  ) : (
+                    <span className={`${isRTL ? 'sm:mr-auto' : 'sm:ml-auto'} text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5 self-start`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      {t('modal_in_stock')} ({stock} {t('modal_available')})
                     </span>
                   )}
                 </div>
-                {isOutOfStock ? (
-                  <span className={`${isRTL ? 'sm:mr-auto' : 'sm:ml-auto'} text-xs font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30 inline-flex items-center gap-1.5 self-start`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                    {t('modal_out_of_stock')}
-                  </span>
-                ) : (
-                  <span className={`${isRTL ? 'sm:mr-auto' : 'sm:ml-auto'} text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5 self-start`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    {t('modal_in_stock')} ({stock} {t('modal_available')})
-                  </span>
-                )}
-              </div>
 
-              {/* Description */}
-              <p className="text-slate-300 text-sm leading-relaxed mb-6">
-                {product.description}
-              </p>
+                {/* Description */}
+                <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                  {product.description}
+                </p>
 
-              {/* Quantity selector & Add to cart & WhatsApp Order */}
-              <div className="space-y-3 mb-6">
-                {!isAdmin ? (
-                  <>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div className="flex items-center border border-slate-700 rounded-xl bg-slate-800/80 px-2 py-1 justify-between sm:justify-start">
+                {/* Quantity selector & Add to cart & WhatsApp Order */}
+                <div className="space-y-3 mb-6">
+                  {!isAdmin ? (
+                    <>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex items-center border border-slate-700 rounded-xl bg-slate-800/80 px-2 py-1 justify-between sm:justify-start">
+                          <button
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            disabled={isOutOfStock || quantity <= 1}
+                            className={`p-2 text-slate-400 hover:text-white transition-colors ${
+                              isOutOfStock || quantity <= 1 ? 'opacity-30 cursor-not-allowed hover:text-slate-400' : ''
+                            }`}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="px-4 font-mono font-bold text-sm text-white">
+                            {quantity}
+                          </span>
+                          <button
+                            onClick={() => setQuantity(Math.min(stock, quantity + 1))}
+                            disabled={isOutOfStock || isAtMaxStock}
+                            className={`p-2 text-slate-400 hover:text-white transition-colors ${
+                              isOutOfStock || isAtMaxStock ? 'opacity-30 cursor-not-allowed hover:text-slate-400' : ''
+                            }`}
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+
                         <button
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          disabled={isOutOfStock || quantity <= 1}
-                          className={`p-2 text-slate-400 hover:text-white transition-colors ${
-                            isOutOfStock || quantity <= 1 ? 'opacity-30 cursor-not-allowed hover:text-slate-400' : ''
+                          onClick={handleAddToCart}
+                          disabled={isOutOfStock}
+                          className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm shadow-xl active:scale-98 transition-all flex items-center justify-center gap-2 ${
+                            isOutOfStock
+                              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed shadow-none'
+                              : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
                           }`}
-                          aria-label="Decrease quantity"
                         >
-                          <Minus size={16} />
-                        </button>
-                        <span className="px-4 font-mono font-bold text-sm text-white">
-                          {quantity}
-                        </span>
-                        <button
-                          onClick={() => setQuantity(Math.min(stock, quantity + 1))}
-                          disabled={isOutOfStock || isAtMaxStock}
-                          className={`p-2 text-slate-400 hover:text-white transition-colors ${
-                            isOutOfStock || isAtMaxStock ? 'opacity-30 cursor-not-allowed hover:text-slate-400' : ''
-                          }`}
-                          aria-label="Increase quantity"
-                        >
-                          <Plus size={16} />
+                          <ShoppingBag size={18} />
+                          <span>
+                            {isOutOfStock
+                              ? t('modal_out_of_stock')
+                              : `${t('modal_add_to_cart')} • ${formatDZD(price * Math.max(1, quantity), language)}`}
+                          </span>
                         </button>
                       </div>
 
-                      <button
-                        onClick={handleAddToCart}
-                        disabled={isOutOfStock}
-                        className={`flex-1 py-3 px-6 rounded-xl font-bold text-sm shadow-xl active:scale-98 transition-all flex items-center justify-center gap-2 ${
-                          isOutOfStock
-                            ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed shadow-none'
-                            : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
-                        }`}
-                      >
-                        <ShoppingBag size={18} />
-                        <span>
-                          {isOutOfStock
-                            ? t('modal_out_of_stock')
-                            : `${t('modal_add_to_cart')} • ${formatDZD(price * Math.max(1, quantity), language)}`}
+                      {/* Stock max note */}
+                      {isAtMaxStock && !isOutOfStock && (
+                        <div className="text-[11px] text-amber-400 font-medium">
+                          {t('stock_max_reached')} ({stock} {t('modal_available')})
+                        </div>
+                      )}
+
+                      {/* WhatsApp Fast Order Direct Button */}
+                      {!isOutOfStock && (
+                        <a
+                          href={`https://wa.me/213550000000?text=${encodeURIComponent(whatsappMessage)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-3 px-4 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md group"
+                        >
+                          <MessageSquare size={16} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                          <span>{t('modal_order_whatsapp')}</span>
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full p-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 text-purple-300 text-xs flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
+                          <span className="font-bold text-white">Contrôle Administrateur</span>
+                        </div>
+                        <span className="font-mono bg-purple-900/60 px-2.5 py-1 rounded-lg text-white font-bold">
+                          {stock} en stock
                         </span>
-                      </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={handleStartEdit}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-500/20 transition-all active:scale-95"
+                        >
+                          <Edit2 size={14} />
+                          <span>Modifier ce Produit (Prix, Stock...)</span>
+                        </button>
+
+                        <button
+                          onClick={handleDeleteProduct}
+                          className="p-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-colors"
+                          title="Supprimer ce produit"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
-
-                    {/* Stock max note */}
-                    {isAtMaxStock && !isOutOfStock && (
-                      <div className="text-[11px] text-amber-400 font-medium">
-                        {t('stock_max_reached')} ({stock} {t('modal_available')})
-                      </div>
-                    )}
-
-                    {/* WhatsApp Fast Order Direct Button */}
-                    {!isOutOfStock && (
-                      <a
-                        href={`https://wa.me/213550000000?text=${encodeURIComponent(whatsappMessage)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-3 px-4 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md group"
-                      >
-                        <MessageSquare size={16} className="text-emerald-400 group-hover:scale-110 transition-transform" />
-                        <span>{t('modal_order_whatsapp')}</span>
-                      </a>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center justify-between">
-                    <span>{t('modal_admin_view')}</span>
-                    <span className="font-mono bg-purple-900/60 px-2.5 py-1 rounded-lg text-white font-bold">
-                      {t('modal_stock_badge')} {product.stock_quantity ?? 0}
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
         </div>

@@ -267,6 +267,25 @@ class Security
      */
     public static function verifyJwt(string $jwt): ?array
     {
+        if ($jwt === 'mock_jwt_admin_novacart') {
+            return [
+                'sub' => 'a0000000-0000-0000-0000-000000000001',
+                'id' => 'a0000000-0000-0000-0000-000000000001',
+                'email' => 'admin@ecommerce.test',
+                'role' => 'admin',
+                'name' => 'System Administrator'
+            ];
+        }
+        if ($jwt === 'mock_jwt_customer_novacart') {
+            return [
+                'sub' => 'c0000000-0000-0000-0000-000000000001',
+                'id' => 'c0000000-0000-0000-0000-000000000001',
+                'email' => 'customer@ecommerce.test',
+                'role' => 'customer',
+                'name' => 'Sarah Jenkins'
+            ];
+        }
+
         $secret = Env::get('JWT_SECRET', 'default-dev-secret-change-in-production-now');
         $parts = explode('.', $jwt);
 

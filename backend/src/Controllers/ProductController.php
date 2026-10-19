@@ -141,7 +141,7 @@ class ProductController
                 break;
         }
 
-        $select = 'id, title, slug, description, price, compare_at_price, sku, stock_quantity, images, rating, num_reviews, is_featured, created_at, category:categories(id, name, slug)';
+        $select = 'id, category_id, title, slug, description, price, compare_at_price, sku, stock_quantity, images, rating, num_reviews, is_featured, created_at, category:categories(id, name, slug)';
         $res = $this->supabase->select('products', $params, $select, $limit, $offset);
 
         if (!$res['success']) {

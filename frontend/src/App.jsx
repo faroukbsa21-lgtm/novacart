@@ -16,7 +16,10 @@ import {
   Search, 
   LayoutDashboard, 
   Package, 
-  X
+  X,
+  Shield,
+  Plus,
+  Settings
 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useLanguage } from './context/LanguageContext';
@@ -39,6 +42,9 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [adminInitialTab, setAdminInitialTab] = useState('overview');
+  const [adminInitialProduct, setAdminInitialProduct] = useState(null);
+  const [adminAutoOpenCreate, setAdminAutoOpenCreate] = useState(false);
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
@@ -90,7 +96,12 @@ export default function App() {
       {/* Navbar */}
       <Navbar
         onOpenAuth={() => setIsAuthOpen(true)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenAdmin={() => {
+          setAdminInitialTab('overview');
+          setAdminInitialProduct(null);
+          setAdminAutoOpenCreate(false);
+          setIsAdminOpen(true);
+        }}
         onOpenOrders={() => setIsOrdersOpen(true)}
         backendHealth={backendHealth}
         searchQuery={searchQuery}
@@ -191,6 +202,56 @@ export default function App() {
               >
                 <X size={13} />
                 <span>{t('search_clear')}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Action Bar (Visible only to authenticated Admin) */}
+        {isAdmin && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold border border-purple-500/30 shadow-inner">
+                <Shield size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white">Session Administrateur Active</span>
+                  <span className="text-[10px] bg-purple-500/25 text-purple-300 px-2 py-0.5 rounded-full font-mono font-bold border border-purple-500/30">
+                    GESTION EN DIRECT
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Ajoutez de nouveaux produits ou modifiez les prix et stocks directement depuis le catalogue.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setAdminInitialTab('products');
+                  setAdminInitialProduct(null);
+                  setAdminAutoOpenCreate(true);
+                  setIsAdminOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-500/25 transition-all active:scale-95"
+              >
+                <Plus size={15} />
+                <span>Ajouter un Produit</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setAdminInitialTab('products');
+                  setAdminInitialProduct(null);
+                  setAdminAutoOpenCreate(false);
+                  setIsAdminOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-300 hover:text-white font-bold text-xs border border-purple-500/30 flex items-center gap-1.5 transition-all"
+              >
+                <Settings size={15} />
+                <span>Gérer le Catalogue</span>
               </button>
             </div>
           </div>
@@ -314,6 +375,12 @@ export default function App() {
                 key={product.id}
                 product={product}
                 onSelectProduct={(p) => setSelectedProduct(p)}
+                onEditProduct={(p) => {
+                  setAdminInitialTab('products');
+                  setAdminInitialProduct(p);
+                  setAdminAutoOpenCreate(false);
+                  setIsAdminOpen(true);
+                }}
               />
             ))}
           </div>
@@ -341,19 +408,32 @@ export default function App() {
         <ProductDetailModal
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
+          onProductUpdated={fetchProducts}
         />
       )}
 
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenAdmin={() => {
+          setAdminInitialTab('overview');
+          setAdminInitialProduct(null);
+          setAdminAutoOpenCreate(false);
+          setIsAdminOpen(true);
+        }}
       />
 
       <AdminModal
         isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
+        onClose={() => {
+          setIsAdminOpen(false);
+          setAdminInitialProduct(null);
+          setAdminAutoOpenCreate(false);
+        }}
         onProductUpdated={fetchProducts}
+        initialTab={adminInitialTab}
+        initialProductToEdit={adminInitialProduct}
+        autoOpenCreate={adminAutoOpenCreate}
       />
 
       <OrdersModal

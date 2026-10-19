@@ -613,11 +613,26 @@ export const api = {
     const genHex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
     const newId = productData.id || `b${genHex()}${genHex()}-${genHex()}-4${genHex().substring(1)}-8${genHex().substring(1)}-${genHex()}${genHex()}${genHex()}`;
 
+    const catMap = {
+      '11111111-1111-1111-1111-111111111111': 'Electronics',
+      '22222222-2222-2222-2222-222222222222': 'Fashion',
+      '33333333-3333-3333-3333-333333333333': 'Home & Living',
+      '44444444-4444-4444-4444-444444444444': 'Accessories'
+    };
+
+    const catName = catMap[productData.category_id] || 'General';
+
     const newProduct = {
       id: newId,
       slug: (productData.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + genHex(),
       rating: 0,
       num_reviews: 0,
+      category_name: catName,
+      category: {
+        id: productData.category_id || '11111111-1111-1111-1111-111111111111',
+        name: catName,
+        slug: catName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      },
       ...productData,
       created_at: new Date().toISOString()
     };
@@ -629,7 +644,8 @@ export const api = {
         body: JSON.stringify(productData)
       });
       const data = await handleResponse(res);
-      const createdItem = data?.data || data?.product || newProduct;
+      const serverItem = data?.data || data?.product || newProduct;
+      const createdItem = { ...newProduct, ...serverItem };
 
       try {
         const localProds = this.getCustomProducts();
@@ -650,15 +666,32 @@ export const api = {
    * Admin: Update Product
    */
   async updateProduct(id, productData) {
+    const catMap = {
+      '11111111-1111-1111-1111-111111111111': 'Electronics',
+      '22222222-2222-2222-2222-222222222222': 'Fashion',
+      '33333333-3333-3333-3333-333333333333': 'Home & Living',
+      '44444444-4444-4444-4444-444444444444': 'Accessories'
+    };
+
+    const enhancedData = { ...productData };
+    if (enhancedData.category_id && catMap[enhancedData.category_id]) {
+      enhancedData.category_name = catMap[enhancedData.category_id];
+      enhancedData.category = {
+        id: enhancedData.category_id,
+        name: catMap[enhancedData.category_id],
+        slug: catMap[enhancedData.category_id].toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      };
+    }
+
     try {
       const overrides = this.getProductOverrides();
-      overrides[id] = { ...(overrides[id] || {}), ...productData };
+      overrides[id] = { ...(overrides[id] || {}), ...enhancedData };
       localStorage.setItem('novacart_product_overrides', JSON.stringify(overrides));
 
       const localProds = this.getCustomProducts();
       const idx = localProds.findIndex(p => p.id === id);
       if (idx !== -1) {
-        localProds[idx] = { ...localProds[idx], ...productData };
+        localProds[idx] = { ...localProds[idx], ...enhancedData };
         localStorage.setItem('novacart_demo_products', JSON.stringify(localProds));
       }
     } catch (e) {}
@@ -670,10 +703,10 @@ export const api = {
         body: JSON.stringify(productData)
       });
       const data = await handleResponse(res);
-      const updated = data?.data || { id, ...productData };
+      const updated = data?.data || { id, ...enhancedData };
       return { success: true, data: updated, product: updated, message: 'Product updated successfully' };
     } catch (err) {
-      return { success: true, data: { id, ...productData }, product: { id, ...productData }, message: 'Product updated successfully' };
+      return { success: true, data: { id, ...enhancedData }, product: { id, ...enhancedData }, message: 'Product updated successfully' };
     }
   },
 
