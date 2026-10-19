@@ -40,17 +40,6 @@ npm run dev
 
 ---
 
-## 👥 Pre-Seeded Test Credentials
-
-| Role | Email | Password | Permissions |
-|---|---|---|---|
-| **Admin** | `admin@ecommerce.test` | `Admin@123456` | Admin Dashboard, Inventory CRUD, Order Status Management |
-| **Customer** | `customer@ecommerce.test` | `Customer@123` | Browsing, Cart, Checkout, Order History, Reviews |
-
-> 💡 *Quick demo login buttons are built directly into the Sign In modal!*
-
----
-
 ## 📂 Project Structure
 
 ```
